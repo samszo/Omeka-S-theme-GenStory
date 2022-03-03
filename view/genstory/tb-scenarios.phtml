@@ -1,0 +1,25 @@
+<?php
+$isAdmin = $this->vars('isAdmin');
+$allowCreate = $this->vars('allowCreate');
+
+?>
+<div class="btn-toolbar mb-2" role="toolbar" aria-label="Fenêtres supplémentaires">
+    <div class="btn-group btn-group-sm me-2" role="group">
+        <button id="btngdListeScenario" type="button" class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            Liste des scénarios
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="btngdListeScenario" id="ddmListeScenario">
+        </ul>
+    </div>
+    <?php if($isAdmin) : ?>
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils experts">
+        <button id="btnAjoutScenario" type="button" class="btn btn-danger" >Créer un scenario</button>
+    </div>
+    <?php endif; ?>
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils publics">
+        <button type="button" class="btn btn-success">Citer</button>
+        <button type="button" class="btn btn-success">Incorporer</button>
+    </div>
+
+</div>

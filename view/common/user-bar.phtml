@@ -1,0 +1,29 @@
+<?php
+$translate = $this->plugin('translate');
+$hyperlink = $this->plugin('hyperlink');
+$urlHelper = $this->plugin('url');
+?>
+<div id="user-bar">
+<?php if ($user): ?>
+	<script>user=<?php echo json_encode($user);?></script>
+	<div class="user-links">
+	    <span class="user-id">
+	        <?php
+	        $url = $urlHelper('admin/id', ['controller' => 'user', 'id' => $user->getId()]);
+	        //echo sprintf($translate('Signed in as %s'), $hyperlink($user->getName(), $url));
+	        echo sprintf('%s', $hyperlink($user->getName(), $url));
+	        ?>
+	    </span>
+        <?php echo '<a href="'.$urlHelper('logout').'"><i class="fas fa-sign-out-alt"></i></a>'
+		//$hyperlink($translate('Logout'), $urlHelper('logout'), ['class' => 'logout']); 
+		//;
+		?>
+	</div>
+<?php else: ?>
+	<script>user=false;</script>
+	<div class="user-links">
+	<span class="user-id">Anonyme</span>
+    <?php echo $hyperlink($translate('Log in'), $urlHelper('login'), ['class' => 'login']); ?>
+	</div>
+<?php endif; ?>
+</div>

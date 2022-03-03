@@ -1,0 +1,28 @@
+<?php
+$site = $this->vars('site');
+$nav = $site->publicNav();
+$container = $nav->getContainer();
+$activePage = $nav->findActive($container);
+?>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="<?php echo $site->siteUrl();?>">GenStory</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavMenuHaut" aria-controls="navbarNavMenuHaut" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavMenuHaut">
+      <ul class="navbar-nav">
+      <?php foreach($container as $page): ?>
+        <li class="nav-item">
+        <?php
+        $class = "nav-link ";         
+        if($activePage && $page->label == $activePage['page']->label) $class .= 'active';
+        $page->setClass($class); 
+        echo $this->navigation()->menu()->htmlify($page) . PHP_EOL; 
+        ?>
+        </li>
+      <?php endforeach; ?>
+      </ul>
+    </div>
+  </div>
+</nav>

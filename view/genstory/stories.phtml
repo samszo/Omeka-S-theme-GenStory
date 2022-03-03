@@ -1,0 +1,55 @@
+<?php
+
+$allowAnnotation=false;
+if ($this->userIsAllowed(\Annotate\Entity\Annotation::class, 'create')) {
+  $allowAnnotation=true;
+}
+$allowCreate=false;
+if ($this->userIsAllowed('Omeka\Entity\Resource', 'create')) {
+  $allowCreate=true;
+}
+$isAdmin = $this->identity() && $this->identity()->getRole() == "global_admin" ? true : false;
+$translate = $this->plugin('translate');
+$actant = false;
+if($allowCreate)$actant=$this->CartoAffectFactory(['getActant'=>true,'user'=>$this->identity()]); 
+
+//récupère la liste des histoires 
+$rc =  $this->api()->search('resource_classes', ['term' => 'genstory:histoire',])->getContent()[0];
+$stories = $this->api()->search('items', ['resource_class_id'=>$rc->id(),'sort_by'=>'dcterms:date'])->getContent();
+
+//récupère la définition des propriétés de l'histoire
+$propsList = ['genstory:hasActant','genstory:hasAffect','genstory:hasEvenement','genstory:hasLieu','genstory:hasObjet'];
+$props=[];
+foreach ($propsList as $pl) {
+    $p =  $this->api()->search('properties', ['term' => $pl])->getContent();
+    $props[]=$p[0];
+}
+
+$this->headScript()->appendFile($this->assetUrl('js/stories.js'));
+
+?>
+<script>
+
+const itemsStories = <?php echo json_encode($stories); ?>    
+
+    , actant = <?php echo json_encode($actant); ?>    
+
+    , props = <?php echo json_encode($props); ?>    
+
+    , urlApi = '<?php echo $this->url('api', [], true); ?>'
+    , urlAdmin = '<?php echo $this->url('admin', [], true); ?>'
+    , urlSite = '<?php echo $this->url('site', [], true); ?>'
+;
+
+window.onload = initStories;
+</script>
+
+<div class="container-fluid h-75">
+  <div class="row">
+    <div class="col bg-secondary text-white p-2">
+      <?php echo $this->partial('genstory/tb-stories', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
+      <div id="storiesCards" class="card-group"></div>
+    </div>
+  </div>
+</div>
+

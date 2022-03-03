@@ -1,0 +1,137 @@
+<!-- formulaire pour l'indexation manuelle' -->
+<div class="container bg-dark text-white p-2" style="display:none" id="mdEditIndex">
+    <input id="idIndex" type="hidden" value="">
+    <input id="idCat" type="hidden" value="">
+    <input id="idGroup" type="hidden" value="">
+    <input id="idSource" type="hidden" value="">
+    <input id="idTarget" type="hidden" value="">
+    <input id="category" type="hidden" value="">
+    <input id="idLayer" type="hidden" value="">
+    <input id="idEntry" type="hidden" value="">
+    <div class="row">
+
+        <div class="col-12">
+            <div id="choixMedia">
+                <input class="typeahead" type="text" placeholder="Choisir un média">
+            </div>
+        </div>
+
+
+        <div class="col-12">
+            <label for="inputIMtitre" class="form-label">Titre</label>
+            <input type="text" class="form-control" id="inputIMtitre" />
+        </div>
+        <div class="col-12">
+            <label for="inputIMdesc" class="form-label">Description</label>
+            <textarea id="inputIMdesc" class="form-control" rows="2"></textarea>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3">
+            <label for="inputIMdeb" class="form-label">Début</label>
+            <input type="number" class="form-control" id="inputIMdeb" aria-describedby="inputIMdebHelp">
+            <div id="inputIMdebHelp" class="form-text"></div>
+        </div>
+        <div class="col-3">
+            <label for="inputIMfin" class="form-label">Fin</label>
+            <input type="number" class="form-control" id="inputIMfin" aria-describedby="inputIMfinHelp">
+            <div id="inputIMfinHelp" class="form-text"></div>
+        </div>
+        <div class="col-6">
+          <div class="row">
+          <div class="col">
+            <label for="inputIMcolor" class="form-label">Couleur</label>
+            <input type="color" class="form-control form-control-color" id="inputIMcolor" value="black"
+                title="Choisir une couleur" aria-describedby="inputIMcolorHelp">
+
+          </div>
+          <div class="col">
+          <label for="inputIMopa" class="form-label">Opacité</label>
+          <input type="range" class="form-range" min="0" max="1" step="0.1" value="0.5" id="inputIMopa">
+            
+          </div>
+
+          </div>
+          <div class="row">
+          <div id="inputIMcolorHelp" class="form-text"></div>
+
+          </div>
+          
+        </div>
+    </div>
+    <div class="d-flex justify-content-between mt-2">
+        <button id='btnIMajout' class="btn btn-danger" >Ajouter</button>
+        <button id='btnIMmodif' class="btn btn-warning" >Modifier</button>
+    </div>
+</div>
+<script>
+var sgtMedias = new Bloodhound({
+  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('o:title'),
+  queryTokenizer: Bloodhound.tokenizers.whitespace,
+  identify: function(obj) { 
+      return obj['o:id']; 
+    },
+  //prefetch: 'http://localhost/omk_arcanes/api/media',
+  remote: {
+    url: urlApi+'/media?property[0][property]=1&property[0][type]=in&property[0][text]=%QUERY&sort_by=title',
+    wildcard: '%QUERY'
+  }
+});
+
+var promise = sgtMedias.initialize();
+
+promise
+    .done(function() { 
+        console.log('ready to go!'); 
+        sgtMedias.search('a', sync, async);
+
+        function sync(datums) {
+        console.log('datums from `local`, `prefetch`, and `#add`');
+        console.log(datums);
+        }
+
+        function async(datums) {
+        console.log('datums from `remote`');
+        console.log(datums);
+        }
+
+    })
+    .fail(function() { 
+        console.log('err, something went wrong :('); 
+});
+
+$('#choixMedia .typeahead').typeahead(null, {
+  name: 'omk-medias',
+  display: 'o:title',
+  source: sgtMedias,
+  templates: {
+    empty: [
+      '<div class="empty-message">',
+        'Impossible de trouver un média',
+      '</div>'
+    ].join('\n'),
+    suggestion: Handlebars.compile('<div><strong>{{o:title}}</strong> – {{o:id}}</div>')
+  }  
+});
+$('#choixMedia .typeahead').bind('typeahead:select', function(ev, suggestion) {
+  document.getElementById('idSource').value=suggestion["o:item"]["o:id"];
+  document.getElementById('idTarget').value=suggestion['o:id'];
+});
+
+$('#inputIMcolor').on('change',function(){
+  document.getElementById('inputIMcolorHelp').innerHTML = getColorRGBA($("#inputIMopa").val(), $("#inputIMcolor").val());
+})
+$('#inputIMopa').on('change',function(){
+  document.getElementById('inputIMcolorHelp').innerHTML = getColorRGBA($("#inputIMopa").val(), $("#inputIMcolor").val());
+})
+$('#inputIMdeb').on('change',function(){
+  document.getElementById('inputIMdebHelp').innerHTML = secondsToHms(document.getElementById('inputIMdeb').value);
+})
+$('#inputIMfin').on('change',function(){
+  document.getElementById('inputIMfinHelp').innerHTML = secondsToHms(document.getElementById('inputIMfin').value);
+})
+function getColorRGBA(opa, color){
+  return 'rgba(' + parseInt(color.slice(-6, -4), 16) + ',' + parseInt(color.slice(-4, -2), 16) + ',' + parseInt(color.slice(-2), 16) 
+    + ',' + opa + ')'
+}
+</script>

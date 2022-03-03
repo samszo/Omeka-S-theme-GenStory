@@ -1,0 +1,61 @@
+<?php
+
+$allowAnnotation=false;
+if ($this->userIsAllowed(\Annotate\Entity\Annotation::class, 'create')) {
+  $allowAnnotation=true;
+}
+$allowCreate=false;
+if ($this->userIsAllowed('Omeka\Entity\Resource', 'create')) {
+  $allowCreate=true;
+}
+$isAdmin = $this->identity() && $this->identity()->getRole() == "global_admin" ? true : false;
+$translate = $this->plugin('translate');
+$actant = false;
+if($allowCreate)$actant=$this->CartoAffectFactory(['getActant'=>true,'user'=>$this->identity()]); 
+
+//récupère la liste des scénarios
+$rt =  $this->api()->search('resource_templates', ['label' => 'Indexation vidéo',])->getContent()[0];
+$scenarios = $this->api()->search('items', ['resource_class_id'=>$rt->id(),'sort_by'=>'dcterms:date'])->getContent();
+
+$this->headScript()->appendFile($this->assetUrl('js/scenario.js'));
+
+?>
+<script>
+
+const itemsScenario = <?php echo json_encode($scenarios); ?>    
+
+    , actant = <?php echo json_encode($actant); ?>    
+
+    , urlApi = '<?php echo $this->url('api', [], true); ?>'
+    , urlAdmin = '<?php echo $this->url('admin', [], true); ?>'
+    , urlSite = '<?php echo $this->url('site', [], true); ?>'
+    , urlPosterVideo="<?php echo $this->assetUrl('images/video-poster.png'); ?>"
+;
+
+window.onload = initVisios;
+</script>
+
+<div class="container-fluid h-75">
+  <div class="row">
+    <div class="col bg-secondary text-white p-2">
+      <?php echo $this->partial('genstory/tb-scenarios', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
+      <?php echo $this->partial('genstory/form-edit-index', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
+      <div class="container">
+        <div id="mediaCards" class="card-group"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+
+import { Timeliner } from '<?php echo $this->assetUrl('js/timeliner/timeliner.js'); ?>'
+
+var actions = {};
+
+// initialize timeliner
+timeliner = new Timeliner(actions);
+timeliner.hide();
+timeliner.fctKeyframe = addKeyframe;
+timeliner.fctKeyframeMove = changeKeyframe
+</script>

@@ -1,0 +1,21 @@
+<?php
+$isAdmin = $this->vars('isAdmin');
+$allowCreate = $this->vars('allowCreate');
+
+?>
+<div class="btn-toolbar mb-2" role="toolbar" >
+    <div class="btn-group btn-group-sm me-2" role="group">
+        <button id="btngdListeHistoire" type="button" class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            List of stories
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="btngdListeHistoire" id="ddmListeHistoire">
+        </ul>
+    </div>
+    <?php if($isAdmin) : ?>
+    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils experts">
+        <button id="btnAjoutHistoire" type="button" class="btn btn-danger" >Create story</button>
+    </div>
+    <?php endif; ?>
+
+</div>

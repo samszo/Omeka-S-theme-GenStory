@@ -1,0 +1,17 @@
+<?php
+
+$helper = $this->params()->fromQuery('helper','');
+$log = $this->logger();
+
+switch ($helper) {
+    case 'Scenario':
+        $scenario = $this->ScenarioFactory($this->params());
+        echo $this->json($scenario);                
+    break;
+}
+
+
+?>
+
+
+

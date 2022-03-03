@@ -1,0 +1,43 @@
+#listeSem {
+  max-height: 400px;
+  overflow-y: scroll;
+}
+.listeDetails {
+  max-height: 300px;
+  overflow-y: scroll;
+}
+#logoMazePetit{
+  height: 60px;
+  width: 400px;
+}
+.loading{
+  color: black;
+}
+.jBox-Modal .jBox-title {
+  background-color: #6c757d;
+}
+.btnIco{
+  margin-left: 3px;
+  margin-right: 3px;
+  cursor: pointer;
+  font-size: 24px; 
+}
+
+#choixMedia .empty-message {
+  padding: 5px 10px;
+  text-align: center;
+}
+#choixMedia .tt-menu {
+  max-height: 150px;
+  background-color: #3a3b3b;
+  overflow-y: auto;
+}
+#choixMedia .twitter-typeahead {
+  width: 100%;
+}
+#choixMedia .tt-hint {
+  width: 100%;
+}
+#choixMedia .tt-input {
+  width: 100%;
+}
