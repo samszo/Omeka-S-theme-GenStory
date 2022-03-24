@@ -14,8 +14,20 @@ $actant = false;
 if($allowCreate)$actant=$this->CartoAffectFactory(['getActant'=>true,'user'=>$this->identity()]); 
 
 //récupère la liste des scénarios
-$rt =  $this->api()->search('resource_templates', ['label' => 'Indexation vidéo',])->getContent()[0];
-$scenarios = $this->api()->search('items', ['resource_class_id'=>$rt->id(),'sort_by'=>'dcterms:date'])->getContent();
+$rt =  $this->api()->search('resource_templates', ['label' => 'Scenario',])->getContent()[0];
+$scenarios = $this->api()->search('items', ['resource_template_id'=>$rt->id(),'sort_by'=>'dcterms:date'])->getContent();
+
+//récupère la class histoire
+$rcHistoire =  $this->api()->search('resource_classes', ['term' => 'genstory:histoire',])->getContent()[0];
+
+//récupère la définition des propriétés de l'histoire
+$propsList = ['genstory:hasActant','genstory:hasAffect','genstory:hasEvenement','genstory:hasLieu','genstory:hasObjet'];
+$props=[];
+foreach ($propsList as $pl) {
+    $p =  $this->api()->search('properties', ['term' => $pl])->getContent();
+    $props[]=$p[0];
+}
+
 
 $this->headScript()->appendFile($this->assetUrl('js/scenario.js'));
 
@@ -26,10 +38,14 @@ const itemsScenario = <?php echo json_encode($scenarios); ?>
 
     , actant = <?php echo json_encode($actant); ?>    
 
+    , props = <?php echo json_encode($props); ?>    
+
     , urlApi = '<?php echo $this->url('api', [], true); ?>'
     , urlAdmin = '<?php echo $this->url('admin', [], true); ?>'
     , urlSite = '<?php echo $this->url('site', [], true); ?>'
     , urlPosterVideo="<?php echo $this->assetUrl('images/video-poster.png'); ?>"
+    , urlSuggestStory =  urlApi+'/items?resource_class_id=<?php echo $rcHistoire->id(); ?>'
+      +'&property[0][property]=1&property[0][type]=in&property[0][text]=%QUERY&sort_by=title'
 ;
 
 window.onload = initVisios;
@@ -39,9 +55,15 @@ window.onload = initVisios;
   <div class="row">
     <div class="col bg-secondary text-white p-2">
       <?php echo $this->partial('genstory/tb-scenarios', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
-      <?php echo $this->partial('genstory/form-edit-index', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
-      <div class="container">
-        <div id="mediaCards" class="card-group"></div>
+      <?php 
+      if($isAdmin){
+        echo $this->partial('genstory/form-edit-index');
+        echo $this->partial('genstory/form-add-scenario');
+      }
+      ?>
+      <div class="container pt-4">
+        <div id="mediaCards" class="row row-cols-1 row-cols-md-6 g-4" style="height: 328px;overflow-y: scroll;" ></div>
+            
       </div>
     </div>
   </div>

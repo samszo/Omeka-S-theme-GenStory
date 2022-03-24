@@ -1,18 +1,13 @@
-let semSelect = {},
-    timeliner, scenario, mediaCards = {},
-    currentSource, currentMedia, videoIndex = [],
-    mdEditIndex,
-    listeDetails = d3.select('#listeDetails');
-
-
+let timeliner, scenario, mediaCards = {},
+    currentMedia, mediaIndex = [],
+    mdEditIndex, mdAddScenario, mdShowMedia,
+    sgtLieu, sgtEvent, sgtActant, sgt;
+       
 function initVisios() {
     showListeScenario();
     //gestion des boutons
     d3.select('#btnAjoutScenario').on('click', function (e) {
-        showTimeliner();
-    });
-    d3.select('#btnAjoutMedia').on('click', function (e) {
-        showTimeliner();
+        mdAddScenario.open();
     });
     d3.select('#btnIMajout').on('click', function (e) {
         saveIndex();
@@ -20,6 +15,15 @@ function initVisios() {
     d3.select('#btnIMmodif').on('click', function (e) {
         saveIndex(true);
     });
+    d3.select('#btnSccreate').on('click', function (e) {
+        createScenario(true);
+    });    
+    new jBox('Confirm', {
+        theme: 'TooltipDark',
+        confirmButton: 'Do it!',
+        cancelButton: 'Nope'
+      });
+
     mdWait = new jBox('Modal', {
         width: 200,
         height: 100,
@@ -30,7 +34,7 @@ function initVisios() {
     });
     mdEditIndex = new jBox('Modal', {
         width: 480,
-        height: 384,
+        height: 600,
         theme: 'TooltipDark',
         overlay: false,
         title: "Edition de l'annotation",
@@ -39,6 +43,28 @@ function initVisios() {
         repositionOnOpen: false,
         repositionOnContent: false
     });
+    mdAddScenario = new jBox('Modal', {
+        width: 480,
+        height: 384,
+        theme: 'TooltipDark',
+        overlay: false,
+        title: "Add scenario",
+        content: $('#mdAddScenario'),
+        draggable: 'title',
+        repositionOnOpen: false,
+        repositionOnContent: false
+    });
+    mdShowMedia = new jBox('Modal', {
+        width: 480,
+        height: 384,
+        theme: 'TooltipDark',
+        overlay: false,
+        title: "Media",
+        content: "",
+        draggable: 'title',
+        repositionOnOpen: false,
+        repositionOnContent: false
+    });    
 }
 
 
@@ -58,34 +84,43 @@ function saveIndex(modif) {
     }
     mdWait.open();
     //récupère les données saisies
-    let dataIndex = {
+    let action = modif ? 'saveIndex' : 'createTrack'
+    , dataIndex = {
         'dcterms:title': document.getElementById('inputIMtitre').value,
         'dcterms:description': document.getElementById('inputIMdesc').value,
-        'schema:category': document.getElementById('idCat').value,
         'oa:start': document.getElementById('inputIMdeb').value,
         'oa:end': document.getElementById('inputIMfin').value,
         'schema:color': document.getElementById('inputIMcolorHelp').innerHTML,
         'oa:hasSource': document.getElementById('idSource').value,
         'oa:hasTarget': document.getElementById('idTarget').value,
+        'oa:hasScope': document.getElementById('idScope').value,
         'idGroup': document.getElementById('idGroup').value,
+        'idCat': document.getElementById('idCat').value,
         'category': document.getElementById('category').value,
         'dcterms:creator': actant['o:id'],
+        'idScenario': scenario['o:id'],
+        'rt':'Scenario track'
     }
-    if (modif) dataIndex.idIndex = document.getElementById('idIndex').value;
+    if (modif) dataIndex.idObj= document.getElementById('idObj').value;
+    props.forEach(p=>{
+        dataIndex[p['o:term']]=p.relations.map(r=>{ return {'id':r['o:id']}; });
+    })
 
     //enregistre dans la base
     $.ajax({
             type: 'POST',
             dataType: 'json',
-            url: urlSite + '/page/ajax?helper=Scenario&type=saveIndex&json=1',
+            url: urlSite + '/page/ajax?helper=Scenario&type='+action+'&json=1',
             data: dataIndex
         }).done(function (data) {
             let idLayer = document.getElementById('idLayer').value,
                 idEntry = document.getElementById('idEntry').value;
             if (!modif) {
-                document.getElementById('idIndex').value = data[0]['idIndex'];
+                document.getElementById('idObj').value = data[0]['idObj'];
                 document.getElementById('btnIMmodif').style.display = 'block';
                 document.getElementById('btnIMajout').style.display = 'none';
+                //document.getElementById('mcimg'+media["o:id"]).src=media["thumbnail_display_urls"].medium;       
+
                 //récupère la clef du layer
                 layer = timeliner.getLayer('name',data[0]['category'])
                 if(!layer.length){
@@ -101,6 +136,36 @@ function saveIndex(modif) {
             }
             timeliner.repaintAll();
 
+        })
+        .fail(function (e) {
+            console.log(e);
+        })
+        .always(function () {
+            mdWait.close();
+        });
+}
+
+function createScenario() {
+    mdWait.open();
+    //récupère les données saisies
+    let dataScena = {
+        'dcterms:title': document.getElementById('inputSctitre').value,
+        'dcterms:description': document.getElementById('inputScdesc').value,
+        'dcterms:creator': actant['o:id'],
+        'genstory:hasHistoire':[],
+        'props':props.map(p=>p['o:term'])
+    }
+    storiesToScenario.forEach(s=>dataScena['genstory:hasHistoire'].push(s['o:id']));
+    //enregistre dans la base
+    $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: urlSite + '/page/ajax?helper=Scenario&type=genereScenario&json=1&gen=fromStories',
+            data: dataScena
+        }).done(function (data) {
+            itemsScenario.push(data);
+            showListeScenario();  
+            chargeScenario(null, data);
         })
         .fail(function (e) {
             console.log(e);
@@ -128,19 +193,27 @@ function showListeScenario() {
 
 function chargeScenario(e, d) {
     //supprime les médias cards
-    d3.select("#mediaCards").selectAll("div").remove();
+    d3.select("#mediaCards").selectAll("div").remove();   
+    mediaCards=[]; 
+    mediaIndex=[];
+    d3.select("#btnCurrentScenario").text('...');
 
     //vérifie s'il faut calculer le scénario
-    let refs = d["dcterms:isReferencedBy"][0]["@value"].split('-');
-    if (refs.length > 1 && actant) {
-        mdWait.open();
+    //on le fait dans tous les cas pour avoir la dernière version des targets
+    //let refs = d["dcterms:isReferencedBy"][0]["@value"].split('-');
+    //if (refs.length > 1 && actant) {
+    if (actant) {
+            mdWait.open();
+        let dataScena = {'idScenario':d["o:id"],'idActant':actant['o:id']}    
         $.ajax({
-                type: 'GET',
+                type: 'POST',
                 dataType: 'json',
-                url: urlSite + '/page/ajax?helper=Scenario&type=genereScenario&json=1&item_id=' + refs[1] + '&gen=' + refs[0],
+                url: urlSite + '/page/ajax?helper=Scenario&type=genereScenario&json=1&gen=fromUti',
+                data:dataScena
             }).done(function (data) {
                 d.details = JSON.parse(data['schema:object'][0]['@value']);
                 scenario = d;
+                initSuggestions();
                 showTimeliner();
                 timeliner.load(scenario.details);
             })
@@ -156,8 +229,172 @@ function chargeScenario(e, d) {
         showTimeliner();
         timeliner.load(scenario.details);
     }
-
+    d3.select("#btnCurrentScenario").text(d['o:title']);
+    d3.select("#gbManipScenario").selectAll('button').style('visibility','visible');
 }
+function initSuggestions(){
+
+    let sgtRela = d3.select("#sgtRelations");
+    sgtRela.selectAll('div').remove();
+    let mainDiv = sgtRela.selectAll('div').data(props).enter().append('div').attr('class',"col-12");
+    mainDiv.append('label').attr('class',"form-label").html(p=>p['o:local_name'].substr(3));
+    mainDiv.append('div').attr('id',p=>'choix'+p['o:local_name'].substr(3))
+        .append('input').attr('class',"typeahead").attr('type','text').attr('placeholder',p=>'Choisir '+p['o:local_name'].substr(3));
+    mainDiv.append('ul').attr('id',p=>'choose'+p['o:local_name'].substr(3))
+        .attr("class","list-group list-group-flush");  
+
+    props.forEach(p=>{
+        let className = p['o:local_name'].substr(3);
+        p.relations = [];
+        p.sgt = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.obj.whitespace('o:title'),
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            identify: function(obj) { 
+                return obj['o:id']; 
+              },
+            local: getSuggestionsData(p),
+            initialize: false,
+          });
+        var promise = p.sgt.initialize();
+        promise
+          .done(function() { 
+              console.log('ready to go!'); })
+          .fail(function() { 
+              console.log('err, something went wrong :('); });
+
+        $('#choix'+className+' .typeahead').typeahead(null, {
+        name: 'omk-'+className,
+        display: 'o:title',
+        source: p.sgt,
+        templates: {
+            empty: [
+            '<div class="empty-message">',
+                'no '+className+' found',
+            '</div>'
+            ].join('\n'),
+            suggestion: Handlebars.compile('<div><strong>{{o:title}}</strong> – {{o:id}}</div>')
+        }  
+        });
+        $('#choix'+className+' .typeahead').bind('typeahead:select', function(ev, d) {        
+            p.relations.push(d);
+            createRelationToTrack(p);
+        })        
+    })      
+}
+function createRelationToTrack(p){        
+    let className = p['o:local_name'].substr(3);
+    d3.select('#choose'+className).selectAll('li').remove();
+    d3.select('#choose'+className).selectAll('li').data(p.relations).enter()
+        .append('li').attr('class',"list-group-item").attr('id',r=>className+'_'+r['o;id'])
+        .html(r=>r['o:title'])
+        .append('button').attr('class',"btn btn-danger btn-sm mx-2")
+            .html('X')
+            .on('click',(e,d)=>{
+                let i = p.relations.map(r => r['o:id']).indexOf(d['o:id']);
+                p.relations.splice(i, 1);
+                createRelationToTrack();
+            });
+}
+      
+function getSuggestionsData(p){
+    let layers = scenario.details.layers.filter(l=>l.class["o:label"]==p['o:local_name'].substr(3));
+    return layers.map(l=>l.source);
+}
+function deleteScenario(e) {
+    mdWait.open();
+    $.ajax({
+        type: 'GET',
+        dataType: 'json',
+        url: urlSite + '/page/ajax?helper=Scenario&type=deleteScenario&json=1&item_id=' + scenario['o:id'],
+    }).done(function (data) {
+        if(!data['error']){
+            timeliner.hide();
+            //suprime le scenario
+            let i = itemsScenario.map(s => s['o:id']).indexOf(scenario['o:id']);
+            itemsScenario.splice(i, 1);
+            showListeScenario();  
+            d3.select("#btnCurrentScenario").text('...');
+            d3.select("#gbManipScenario").selectAll('button').style('visibility','hidden');        
+        }
+        new jBox('Notice', {
+            content: data['message'],
+            color: 'black',
+            position: {
+                y: 'center',
+                x: 'center'
+            }
+        });        
+    })
+    .fail(function (e) {
+        console.log(e);
+    })
+    .always(function () {
+        mdWait.close();
+    });
+}
+function editTrack(e,t) {
+    editDetail(e, t);
+}
+function deleteTrack(e,t) {
+    //vérifie si l'utilisateur à le droit de modifier
+    if(t.p.value.entry['dcterms:creator:id'] != actant["o:id"]){
+        let html = '<div class="alert alert-danger" role="alert">'
+            +'<i class="fa-solid fa-triangle-exclamation"></i>'
+            +"<div>Interdit de supprimer une entrée d'un autre utilisateur.</div>"
+            +"</div>"
+        , n = new jBox('Notice', {
+            content: html,
+            color: 'black',
+            position: {
+                y: 'center',
+                x: 'center'
+            }
+        });        
+    }else{
+        mdWait.open();
+        $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: urlSite + '/page/ajax?helper=Scenario&type=deleteTrack&json=1',
+            data:{'id':t.p.value.entry.idObj}
+        }).done(function (data) {
+            if(!data['error']){
+                timeliner.deleteTrack(t.p.idLayer, t.p.value.idEntry);
+            }
+            new jBox('Notice', {
+                content: data['message'],
+                color: 'black',
+                position: {
+                    y: 'center',
+                    x: 'center'
+                }
+            });        
+        })
+        .fail(function (e) {
+            console.log(e);
+        })
+        .always(function () {
+            mdWait.close();
+        });
+    
+    }
+}
+function editSource(e,t) {
+    editItem(null, t, function(d){
+        console.log(d);
+    })
+}
+function editScenario(e) {
+    editItem(null, scenario, function(d){
+        chargeScenario(e, d);
+    })
+}
+function reloadScenario(e) {
+    getItem(scenario, function(data){
+        chargeScenario(null, data);
+    });
+}
+
 
 function animate() {
     requestAnimationFrame(animate);
@@ -167,37 +404,38 @@ function animate() {
 function showTimelinerTarget() {
 
     let objects = timeliner.getObjetActions();
-    videoIndex.forEach(v => v.a = 'd');
+    mediaIndex.forEach(v => v.a = 'd');
     for (const o in objects) {
         let oa = objects[o];
         for (const a in oa.actions) {
             let p = oa.actions[a];
             switch (p.prop) {
-                case 'omk_videoIndex':
-                    joinVideoIndex(o, p);
+                case 'omk_MediaIndex':
+                case 'TrackAction':
+                    joinMediaIndex(o, p);
                     break;
             }
         }
     }
-    if (videoIndex.length) showVideoIndex(timeliner.currentTimeStore.value);
+    if (mediaIndex.length) showMediaIndex(timeliner.currentTimeStore.value);
 }
 
 
-function joinVideoIndex(id, p) {
-    if (videoIndex[id]){
-        videoIndex[id].p = p;
-        videoIndex[id].a = 'u';
+function joinMediaIndex(id, p) {
+    if (mediaIndex[id]){
+        mediaIndex[id].p = p;
+        mediaIndex[id].a = 'u';
     } else {
-        videoIndex[id]={'p':p,'a':'c'};
+        mediaIndex[id]={'p':p,'a':'c'};
         //vérifie s'il faut créer le média
-        let idTarget = videoIndex[id].p.value.entry.idTarget;
-        if (!mediaCards[idTarget]) createMediaCard(videoIndex[id]);
-        mediaCards[idTarget].index.push(videoIndex[id]);
+        let idSource = mediaIndex[id].p.value.entry['oa:hasSource'][0]['o:id'];
+        if (!mediaCards[idSource]) createMediaCard(mediaIndex[id]);
+        mediaCards[idSource].index.push(mediaIndex[id]);
     }
 }
 
 
-function showVideoIndex(s) {
+function showMediaIndex(s) {
     for (const mc in mediaCards) {
         let d = mediaCards[mc];
         if (d.ready) {
@@ -216,94 +454,184 @@ function showVideoIndex(s) {
     }
 }
 
-
 function createMediaCard(data) {
 
 
-    let m = {},
-        d = data.p.value.entry;
-    m.card = d3.select("#mediaCards").append("div")
-        .attr('id', 'cardVideo' + d.idTarget)
-        .attr("class", "card text-white bg-dark");
-
-    /*carte vidéo haut annotation bas
-    appendVideoToMediaCard(m, d, m.card.append('video'));
+    let m = {},  d = data.p.value.entry;
+    m.cardCont = d3.select("#mediaCards").append('div').attr('class','col')
+        .attr('id', 'cardMedia' + d.idTarget)
+    m.card = m.cardCont.append("div").attr("class", "card text-white bg-dark");
+    //carte : header - medias 
+    let headCard = m.card.append('div').attr('class', 'card-header')
+        .append('h5').html(d['category'])
+        .append('button').attr('type',"button").attr('class',"btn btn-danger btn-sm mx-2")
+        .on('click',function(e){
+            editSource(e,{'o:title':d['category'],'o:id':d["oa:hasSource"][0]["o:id"]});
+        })
+        .append('i').attr('class','fa-solid fa-marker');
+    //gestion des médias
+    let urlImg = d["oa:hasTarget"] ? d["oa:hasTarget"][0]["thumbnail_display_urls"].medium : '';
+    if(urlImg){
+        m.card.append('img').attr('class','card-img-top').attr('src',urlImg)
+            .attr('id','mcimg'+d["oa:hasTarget"][0]["o:id"])
+            .style('cursor','pointer')
+            .on('click', function(){showMedia(d["oa:hasTarget"][0]);});        
+    }else
+        m.card.append('img').attr('class','card-img-top ChaoticumPapillonae');
+    
     m.body = m.card.append('div')
-    .attr("class", "card-body");
-    */
-
-    //carte annotation droite vidéo gauche
-    let rowCard = m.card.append('div').attr('class', 'row g-0');
-    let colAnno = rowCard.append('div').attr('class', 'col-md-6');
-    m.body = colAnno.append('div')
         .attr("class", "card-body");
-    let colVideo = rowCard.append('div').attr('class', 'col-md-6');
-    colVideo.append('h5').html(d['nameTarget']);
-    appendVideoToMediaCard(m, d, colVideo.append('video'));
 
-    //construction du body
-    m.body.append('h5')
-        .attr("class", "card-title").html("Annotations");
-    m.idListeDetails = "listeDetails" + d.idTarget;
-    m.listeDetails = m.body.append('ul')
-        .attr("class", "list-group listeDetails")
-        .attr("id", d.idListeDetails);
+    //construction du body à chaque sélection
     m.index = [];
-    mediaCards[d.idTarget] = m;
+    mediaCards[d["oa:hasSource"][0]["o:id"]] = m;
 
 
 }
 
-function appendVideoToMediaCard(m, d, v) {
-    m.idVideo = "visiosVideo" + d.idTarget;
-    v.attr("id", m.idVideo)
-        .attr("class", "video-js vjs-fluid card-img-top")
-        .attr("controls", "true")
-        .attr("preload", "auto")
-        .attr("width", "400")
-        .attr("height", "300")
-        .attr("poster", urlPosterVideo);
-    m.ready = false;
-    m.video = videojs(m.idVideo,{
-        controls:false
+function initMediaTarget(idCont,media){
+
+    let i = d3.select('#'+idCont).select('img'),
+        l = d3.select('#'+idCont).select('label');
+
+    if(media){
+        i.attr('class','card-img-top')
+            .style('cursor','pointer')
+            .attr('src',media["thumbnail_display_urls"].medium)
+            .on('click',function(){showMedia(media);}); 
+        l.html(media['o:title'] ? 'Média sélectionné : '+media['o:title'] : 'Média sélectionné : no title');
+        document.getElementById('idTarget').value=media['o:id'];
+    }else{
+        i.attr('class',"ChaoticumPapillonae")
+            .attr('src','')
+            .style('cursor','pointer')
+            .on('click',console.log('initMediaTarget:no media')); 
+        l.html("Aucun média sélectionné");       
+    }
+
+}
+
+function initMediasCarousel(idCont, item){
+
+    if(item['o:media'].length){
+        let carousel = d3.select('#'+idCont).style('display','block');
+        //récupère la définition des médias
+        $.ajax({
+            type: 'GET',
+            dataType: 'json',
+            url: urlApi + '/media?item_id='+item['o:id'],
+        }).done(function (data) {
+            let indicator = carousel.select('#'+idCont+'Indicator');
+            indicator.selectAll('button').remove();  
+            indicator.selectAll('button').data(data).enter().append('button')
+                .attr('type',"button")
+                .attr("data-bs-target","#"+idCont)
+                .attr("data-bs-slide-to",(d,i)=>i)
+                .attr("class",(d,i)=>i==0 ? "active" : "")
+                .attr("aria-current",true)
+                .attr("aria-label",(d,i)=>"Slide "+i);
+            let inner = carousel.select('#'+idCont+'Inner');
+            inner.selectAll('div').remove();
+            inner.selectAll('div').data(data).enter().append('div')
+                .attr('class',(d,i)=> i==0 ? "carousel-item active" : "carousel-item")
+                .append("img")
+                    .attr('class',"d-block w-100")
+                    .style('cursor','pointer')
+                    .attr('src',d=>d["thumbnail_display_urls"].medium)
+                    .on('click',function(e,d){
+                        initMediaTarget('selectMedia',d);
+                    });
+        })
+        .fail(function (e) {
+            console.log(e);
+        })
+        .always(function () {
+            console.log('initMediasCarousel '+item['o:id']);
+        });
+
+    }else{
+        d3.select('#'+idCont).style('display','none');
+    }
+
+}
+
+
+function showMedia(target){
+
+    mdShowMedia.setTitle(target['o:title'] ? target['o:title'] : 'sans titre' + ' : ' + target['o:id']);
+
+    //enregistre dans la base
+    $.ajax({
+        type: 'GET',
+        dataType: 'html',
+        url: urlSite + '/page/ajax?helper=mediaRender&id='+target['o:id']+'&json=1',
+    }).done(function (data) {
+        mdShowMedia.setContent(data);
+        mdShowMedia.open();
     })
-    m.video.src({
-        type: d.typeTarget,
-        src: d.urlTarget
+    .fail(function (e) {
+        console.log(e);
+    })
+    .always(function () {
+        console.log('addMedia '+target['o:id']);
     });
-    m.video.ready(function () {
-        let playPromise = m.video.play();
-        if (playPromise !== undefined) {
-            playPromise.then(_ => {
-                    m.ready = true;
-                    /*met à jour les extrémité du slider
-                    sliderIndexStartEnd.noUiSlider.updateOptions({
-                        range: {
-                            'min': 0,
-                            'max': m.video.duration()
-                        }
-                    });        
-                    */
-                })
-                .catch(error => {
-                    console.log(error)
-                });
-        }
-    });
-    m.video.on('timeupdate', (e, d) => {
-        /*met à jour les poignées du slider
-        let stopDeb = d3.select('#inputIMdebPlay').style('display')
-          , stopFin = d3.select('#inputIMfinPlay').style('display');
-        if(stopDeb=='none' && stopFin=='none')return;
-        let ct = m.video.currentTime()
-          , posis = sliderIndexStartEnd.noUiSlider.get();
-        if(stopDeb!='none')posis[0]=ct;
-        if(stopFin!='none')posis[1]=ct;
-        sliderIndexStartEnd.noUiSlider.updateOptions({
-              start: posis,        
-          });        
-        */
-    });
+
+}
+
+function appendVideoToMediaCard(m, d, c) {
+    var obj = document.createElement('video');
+    if(obj.canPlayType(d.typeTarget)){
+        let v = c.append('video');
+        m.idVideo = "visiosVideo" + d.idTarget;
+        v.attr("id", m.idVideo)
+            .attr("class", "video-js vjs-fluid card-img-top")
+            .attr("controls", "true")
+            .attr("preload", "auto")
+            .attr("width", "400")
+            .attr("height", "300")
+            .attr("poster", urlPosterVideo);
+        m.ready = false;
+        m.video = videojs(m.idVideo,{
+            controls:false
+        })
+        m.video.src({
+            type: d.typeTarget,
+            src: d.urlTarget
+        });
+        m.video.ready(function () {
+            let playPromise = m.video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                        m.ready = true;
+                        /*met à jour les extrémité du slider
+                        sliderIndexStartEnd.noUiSlider.updateOptions({
+                            range: {
+                                'min': 0,
+                                'max': m.video.duration()
+                            }
+                        });        
+                        */
+                    })
+                    .catch(error => {
+                        console.log(error)
+                    });
+            }
+        });
+        m.video.on('timeupdate', (e, d) => {
+            /*met à jour les poignées du slider
+            let stopDeb = d3.select('#inputIMdebPlay').style('display')
+            , stopFin = d3.select('#inputIMfinPlay').style('display');
+            if(stopDeb=='none' && stopFin=='none')return;
+            let ct = m.video.currentTime()
+            , posis = sliderIndexStartEnd.noUiSlider.get();
+            if(stopDeb!='none')posis[0]=ct;
+            if(stopFin!='none')posis[1]=ct;
+            sliderIndexStartEnd.noUiSlider.updateOptions({
+                start: posis,        
+            });        
+            */
+        });
+    }
 }
 
 function getChildrenIds(s) {
@@ -316,52 +644,41 @@ function getChildrenIds(s) {
 
 function notContainedCard(arr) {
     return function arrNotContains(e) {
-        return arr.indexOf('cardVideo' + e[0]) === -1;
+        return arr.indexOf('cardMedia' + e[0]) === -1;
     };
 }
 
-function hideDetails(ids) {
-    listeDetails.select('#detailIndex_' + d.idObj).style('display', 'none');
-}
 
 function showDetails(d) {
     let dataIndex = d.index.filter(i => i.a == 'c' || i.a == 'u');
     //d.listeDetails.selectAll("li").remove();
-    d.listeDetails.selectAll("li").data(dataIndex)
+    d.cardCont.style('display','none');
+    d.body.selectAll("div").data(dataIndex)
         .join(
             enter => {
-                let aSem = enter.append('li').attr('class', 'list-group-item')
-                    .attr("id", d => 'detailIndex_' + d.p.value.entry.idObj)
-                    .attr("aria-current", "true");
-                let aSemBody = aSem.append('div').attr('class', 'd-flex w-100 justify-content-between');
-                let tools = aSemBody.append('div');
-                if(actant){
-                    tools.append('span').attr('class', 'btnDel px-2')
-                        .style('cursor', 'pointer')
-                        .on('click', deleteDetail)
-                        .append('i').attr('class', 'fa-solid fa-trash-can');
-                    tools.append('span').attr('class', 'btnEdit px-2')
-                        .style('cursor', 'pointer')
-                        .on('click', editDetail)
-                        .append('i').attr('class', 'fa-solid fa-pen-to-square');
-                }
-                aSemBody.append('h6').attr('class', 'mb-1')
+                if(enter.size())d.cardCont.style('display','block');
+                let mainDiv = enter.append('div');
+                mainDiv.append('h6').attr('class', 'mb-1')
                     .style('color', d => d.p.value.entry._color)
-                    .html(d => d.p.value.entry.category);
-                //aSemBody.append('small').html(d=>d.creator);
-                aSem.append('p').html(d => d.p.value.entry.text);
+                    .html(d => d.p.value.entry.text);
+                mainDiv.append('button').attr('type',"button").attr('class',"btn btn-danger btn-sm mx-2 btnEdit")
+                    .on('click',editTrack)
+                    .append('i').attr('class','fa-solid fa-marker');
+                mainDiv.append('button').attr('type',"button").attr('class',"btn btn-danger btn-sm mx-2 btnDelete")
+                    .on('click',deleteTrack)
+                    .append('i').attr('class','fa-solid fa-trash-can');
             },
             update => {
-                update.attr("id", d => {
-                    return 'detailIndex_' + d.p.value.entry.idObj
-                });
+                if(update.size())d.cardCont.style('display','block');
                 if(actant){
-                    update.select('.btnEdit').on('click', editDetail);
+                    update.select('.btnEdit').on('click', editTrack);
+                    update.select('.btnDelete').on('click', deleteTrack);                    
                 }
-                update.select('h6').style('color', d => d.p.value.entry._color).html(d => d.p.value.entry.category);
-                update.select('p').html(d => d.p.value.entry.text);
+                update.select('h6').style('color', d => d.p.value.entry._color).html(d => d.p.value.entry.text);                
             },
-            exit => exit.remove()
+            exit => {
+                exit.remove();
+            }
         );
 }
 
@@ -377,43 +694,63 @@ function editDetail(e, data, entry) {
     document.getElementById('inputIMcolor').value = d3.color(d._color).formatHex();
     document.getElementById('inputIMcolorHelp').innerHTML = d._color;
     document.getElementById('idCat').value = d.idCat;
-    document.getElementById('idIndex').value = d.idObj;
+    document.getElementById('idObj').value = d.idObj;
     document.getElementById('category').value = d.category;
     document.getElementById('idGroup').value = d.idGroup;
-    document.getElementById('idSource').value = d.idSource ? d.idSource : "";
-    document.getElementById('idTarget').value = d.idTarget ? d.idTarget : "";
+    document.getElementById('idScope').value = d["oa:hasScope"] ? d["oa:hasScope"][0]["o:id"] : "";
+    document.getElementById('idSource').value = d["oa:hasSource"] ? d["oa:hasSource"][0]["o:id"] : "";
+    document.getElementById('idTarget').value = d["oa:hasTarget"] ? d["oa:hasTarget"][0]["o:id"] : "";
     document.getElementById('idLayer').value = data ? data.p.idLayer : entry.idLayer;
     document.getElementById('idEntry').value = data ? data.p.value.idEntry : entry.idEntry;
-    if (d.idTarget) {
-        //masque le sélectionneur de média
-        document.getElementById('choixMedia').style.display = 'none';
+    //masque le sélectionneur de média
+    document.getElementById('choixMedia').style.display = 'none';
+    
+    if (d.idObj) {
+        //affiche / cache les boutons nécessaires
         document.getElementById('btnIMajout').style.display = 'none';
         document.getElementById('btnIMmodif').style.display = 'block';
-    } else {
-        //affiche le sélectionneur de média
-        document.getElementById('choixMedia').style.display = 'block';
-        document.getElementById('btnIMajout').style.display = 'block';
-        document.getElementById('btnIMmodif').style.display = 'none';
-    }
-    //vérifie si l'utilisateur à le droit de modifier
-    if(d.idCreator != actant["o:id"]){
-        let html = '<div class="alert alert-danger" role="alert">'
-            +'<i class="fa-solid fa-triangle-exclamation"></i>'
-            +"<div>Interdit de modifier une entrée d'un autre utilisateur.</div>"
-            +"<div>Une nouvelle entrée sera créée.</div>"
-            +"</div>"
-        , n = new jBox('Notice', {
-            content: html,
-            color: 'black',
-            position: {
-                y: 'center',
-                x: 'center'
-            }
-        });        
-        document.getElementById('btnIMajout').style.display = 'block';
-        document.getElementById('btnIMmodif').style.display = 'none';
-        document.getElementById('idGroup').value = 0;
 
+        //affiche le carousel des medias
+        initMediasCarousel("carouselMedias", d["oa:hasSource"][0]);    
+
+        initMediaTarget('selectMedia', d["oa:hasTarget"][0]);
+    
+        //ajoute les propriétés sélectionnées
+        props.forEach(p=>{
+            p.relations = [];
+            if(d[p['o:term']])p.relations = d[p['o:term']];                    
+            createRelationToTrack(p);            
+        })
+
+        //vérifie si l'utilisateur à le droit de modifier
+        if(d['dcterms:creator'][0]['o:id'] != actant["o:id"]){
+            let html = '<div class="alert alert-danger" role="alert">'
+                +'<i class="fa-solid fa-triangle-exclamation"></i>'
+                +"<div>Interdit de modifier une entrée d'un autre utilisateur.</div>"
+                +"<div>Une nouvelle entrée sera créée.</div>"
+                +"</div>"
+            , n = new jBox('Notice', {
+                content: html,
+                color: 'black',
+                position: {
+                    y: 'center',
+                    x: 'center'
+                }
+            });        
+            document.getElementById('btnIMajout').style.display = 'block';
+            document.getElementById('btnIMmodif').style.display = 'none';
+            document.getElementById('idGroup').value = 0;
+        }
+
+
+    } else {
+        /*affiche le sélectionneur de média
+        document.getElementById('choixMedia').style.display = 'block';
+        */
+        //affiche / cache les boutons nécessaires
+        document.getElementById('btnIMajout').style.display = 'block';
+        document.getElementById('btnIMmodif').style.display = 'none';
+        d3.select('#carouselMedias').style('display','none');
     }
     mdEditIndex.open();
 
@@ -421,15 +758,18 @@ function editDetail(e, data, entry) {
 
 function addKeyframe(l, v, o) {
     //console.log(l);
-    let idCat = l.id.split('_')[0];
+    let ids = l.id.split(':');
     editDetail(null,null, {
-        'idCat': idCat,
+        'idCat': ids[0],
         'idEntry': v,
         'idCreator':actant["o:id"],
         'category': l.name,
+        'oa:hasScope': [{'o:id':ids[1]}],
+        'oa:hasSource': [{'o:id':ids[3]}],
+        'oa:hasTarget': 0,
         'idGroup': l.id,
         'idLayer':l.idLayer,    
-        'text': "--",
+        'text': l.name+" "+l.values.length,
         'desc': '--',
         'time': o.time,
         'timeEnd': o.time + 5,
@@ -461,9 +801,5 @@ function secondsToHms(seconds) {
     var mDisplay = m > 0 ? (m >= 10 ? m + ":" : "0" + m + ":") : "00:";
     var sDisplay = s > 0 ? (s >= 10 ? s + ":" : "0" + s + ":") : "00:";
     return hDisplay + mDisplay + sDisplay + mili;
-}
-
-function deleteDetail(e, d) {
-    console.log(d);
 }
 

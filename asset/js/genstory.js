@@ -4,7 +4,7 @@ function editItem(e,d,cbClose){
     console.log(e,d);
     let dt = d.data ? d.data : d;
     if(!d.modal){
-        let t = e.currentTarget.id ? e.currentTarget.id : 'mainContent';
+        let t = e ? e.currentTarget.id ? e.currentTarget.id : 'mainContent' : 'mainContent';
         //merci à https://stephanwagner.me/jBox/documentation
         d.modal = new jBox('Modal', {
             title: '---',

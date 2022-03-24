@@ -1,0 +1,100 @@
+<!-- formulaire pour l'ajout d'un scenario' -->
+<div class="container bg-dark text-white p-2" style="display:none" id="mdAddScenario">
+    <div class="row">
+        <div class="col-12">
+            <label for="inputSctitre" class="form-label">Titre</label>
+            <input type="text" class="form-control" id="inputSctitre" />
+        </div>
+        <div class="col-12">
+            <label for="inputScdesc" class="form-label">Description</label>
+            <textarea id="inputScdesc" class="form-control" rows="2"></textarea>
+        </div>
+      <div class="col-12">
+          <label for="choixStories" class="form-label">Create scenario from stories</label>
+            <div id="choixStories">
+                <input class="typeahead" type="text" placeholder="Type name to choose Story">
+            </div>
+        </div>
+      <div class="col-12">
+            <ul id="chooseStories" class="list-group list-group-flush">            
+            </ul>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between mt-2">
+        <button id='btnSccreate' class="btn btn-danger" >Create</button>
+    </div>
+</div>
+<script>
+let storiesToScenario = [];
+var sgtStories = new Bloodhound({
+  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('o:title'),
+  queryTokenizer: Bloodhound.tokenizers.whitespace,
+  identify: function(obj) { 
+      return obj['o:id']; 
+    },
+  //prefetch: 'http://localhost/omk_arcanes/api/media',
+  remote: {
+    url: urlSuggestStory,
+    wildcard: '%QUERY'
+  }
+});
+var promise = sgtStories.initialize();
+
+promise
+    .done(function() { 
+        console.log('ready to go!'); 
+        sgtStories.search('a', sync, async);
+
+        function sync(datums) {
+          console.log('datums from `local`, `prefetch`, and `#add`');
+          console.log(datums);
+        }
+
+        function async(datums) {
+          console.log('datums from `remote`');
+          console.log(datums);
+        }
+
+    })
+    .fail(function() { 
+        console.log('err, something went wrong :('); 
+});
+
+$('#choixStories .typeahead').typeahead(null, {
+  name: 'omk-story',
+  display: 'o:title',
+  source: sgtStories,
+  templates: {
+    empty: [
+      '<div class="empty-message">',
+        'no story found',
+      '</div>'
+    ].join('\n'),
+    suggestion: Handlebars.compile('<div><strong>{{o:title}}</strong> – {{o:id}}</div>')
+  }  
+});
+$('#choixStories .typeahead').bind('typeahead:select', function(ev, d) {
+
+  let sc = document.getElementById('storyToScenario'+d['o:id']);
+  if(!sc){
+    storiesToScenario.push(d);
+    createStoriesToScenario();
+  } 
+});
+
+function createStoriesToScenario(){
+  d3.select('#chooseStories').selectAll('li').remove();
+  d3.select('#chooseStories').selectAll('li').data(storiesToScenario).enter()
+    .append('li').attr('class',"list-group-item").attr('id',s=>'storyToScenario'+s['o;id'])
+      .html(s=>s['o:title'])
+      .append('button').attr('class',"btn btn-danger btn-sm mx-2")
+        //.append('i').attr('class',"fa-solid fa-trash-can")
+        .html('X')
+        .on('click',delStoriesToScenario);
+}
+function delStoriesToScenario(e,d){
+  let i = storiesToScenario.map(s => s['o:id']).indexOf(d['o:id']);
+  storiesToScenario.splice(i, 1);
+  createStoriesToScenario();
+}
+</script>

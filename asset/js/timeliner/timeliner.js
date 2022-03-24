@@ -876,6 +876,12 @@ function Timeliner(target) {
 	}
 	this.deleteLayer = deleteLayer;
 
+	function deleteTrack(idLayer, idEntry) {
+		layers[idLayer].values.splice(idEntry, 2);
+		repaintAll();
+	}
+	this.deleteTrack = deleteTrack;
+
 	this.dispose = function dispose() {
 
 		var domParent = pane.parentElement;

@@ -7,19 +7,33 @@ $allowCreate = $this->vars('allowCreate');
     <div class="btn-group btn-group-sm me-2" role="group">
         <button id="btngdListeScenario" type="button" class="btn btn-dark dropdown-toggle" data-bs-toggle="dropdown"
             aria-expanded="false">
-            Liste des scénarios
+            List of scenarios
         </button>
         <ul class="dropdown-menu" aria-labelledby="btngdListeScenario" id="ddmListeScenario">
         </ul>
     </div>
     <?php if($isAdmin) : ?>
     <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils experts">
-        <button id="btnAjoutScenario" type="button" class="btn btn-danger" >Créer un scenario</button>
+        <button id="btnAjoutScenario" type="button" class="btn btn-danger" >Create scenario</button>
     </div>
     <?php endif; ?>
-    <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils publics">
-        <button type="button" class="btn btn-success">Citer</button>
-        <button type="button" class="btn btn-success">Incorporer</button>
-    </div>
+    <div class="input-group">
+        <div class="input-group-text" id="btnCurrentScenario">...</div>
+    </div>    
+    <div id="gbManipScenario" class="btn-group me-2" role="group" aria-label="Manipulation scenario">
+        <button type="button" onclick="editScenario(this)" class="btn btn-danger mx-2" 
+        title='Edit scenario' style="visibility:hidden" >
+           <i class="fa-solid fa-marker"></i></button>
+        <button type="button" onclick="reloadScenario(this)" class="btn btn-danger mx-2" 
+        title='Reload scenario' style="visibility:hidden" >
+           <i class="fa-solid fa-rotate"></i></button>
+        <button type="button" onclick="deleteScenario(this)" class="btn btn-danger mx-2" 
+        title='Delete scenario' style="visibility:hidden" 
+        data-confirm="Do you really want to delete this scenario and all associated tracks ?" >
+           <i class="fa-solid fa-trash-can"></i></button>
+        <button type="button" onclick="createModel(this)" class="btn btn-danger mx-2" 
+        title='Create model' style="visibility:hidden" >
+           <i class="fa-solid fa-diagram-project"></i></button>
 
+  </div>
 </div>

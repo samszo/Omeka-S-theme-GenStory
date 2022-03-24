@@ -23,21 +23,27 @@
   font-size: 24px; 
 }
 
-#choixMedia .empty-message {
+.empty-message {
   padding: 5px 10px;
   text-align: center;
 }
-#choixMedia .tt-menu {
+.tt-menu {
   max-height: 150px;
   background-color: #3a3b3b;
   overflow-y: auto;
 }
-#choixMedia .twitter-typeahead {
+.twitter-typeahead {
   width: 100%;
 }
-#choixMedia .tt-hint {
+.tt-hint {
   width: 100%;
 }
-#choixMedia .tt-input {
+.tt-input {
+  width: 100%;
+}
+.ChaoticumPapillonae {
+  background: url(https://samszo.univ-paris8.fr/ChaoticumPapillonae/CreaPapiDynaAnim.php?anim=0&larg=200&haut=200&id=svgPapiLogo);
+  background-size: cover;
+  height: 164px;
   width: 100%;
 }

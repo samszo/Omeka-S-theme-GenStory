@@ -1,70 +1,115 @@
 <!-- formulaire pour l'indexation manuelle' -->
 <div class="container bg-dark text-white p-2" style="display:none" id="mdEditIndex">
-    <input id="idIndex" type="hidden" value="">
-    <input id="idCat" type="hidden" value="">
-    <input id="idGroup" type="hidden" value="">
-    <input id="idSource" type="hidden" value="">
-    <input id="idTarget" type="hidden" value="">
-    <input id="category" type="hidden" value="">
-    <input id="idLayer" type="hidden" value="">
-    <input id="idEntry" type="hidden" value="">
-    <div class="row">
+  <input id="idObj" type="hidden" value="">
+  <input id="idCat" type="hidden" value="">
+  <input id="idGroup" type="hidden" value="">
+  <input id="idScope" type="hidden" value="">
+  <input id="idSource" type="hidden" value="">
+  <input id="idTarget" type="hidden" value="">
+  <input id="category" type="hidden" value="">
+  <input id="idLayer" type="hidden" value="">
+  <input id="idEntry" type="hidden" value="">
+  <div class="row">
 
-        <div class="col-12">
-            <div id="choixMedia">
-                <input class="typeahead" type="text" placeholder="Choisir un média">
-            </div>
-        </div>
-
-
-        <div class="col-12">
-            <label for="inputIMtitre" class="form-label">Titre</label>
-            <input type="text" class="form-control" id="inputIMtitre" />
-        </div>
-        <div class="col-12">
-            <label for="inputIMdesc" class="form-label">Description</label>
-            <textarea id="inputIMdesc" class="form-control" rows="2"></textarea>
-        </div>
+    <div class="col-12">
+      <div id="choixMedia">
+        <input class="typeahead" type="text" placeholder="Choisir un média">
+      </div>
     </div>
-    <div class="row">
-        <div class="col-3">
-            <label for="inputIMdeb" class="form-label">Début</label>
-            <input type="number" class="form-control" id="inputIMdeb" aria-describedby="inputIMdebHelp">
-            <div id="inputIMdebHelp" class="form-text"></div>
-        </div>
-        <div class="col-3">
-            <label for="inputIMfin" class="form-label">Fin</label>
-            <input type="number" class="form-control" id="inputIMfin" aria-describedby="inputIMfinHelp">
-            <div id="inputIMfinHelp" class="form-text"></div>
-        </div>
-        <div class="col-6">
-          <div class="row">
-          <div class="col">
-            <label for="inputIMcolor" class="form-label">Couleur</label>
-            <input type="color" class="form-control form-control-color" id="inputIMcolor" value="black"
-                title="Choisir une couleur" aria-describedby="inputIMcolorHelp">
+    <div class="col-12">
+      <label for="inputIMtitre" class="form-label">Titre</label>
+      <input type="text" class="form-control" id="inputIMtitre" />
+    </div>
+    <div class="col-12">
+      <label for="inputIMdesc" class="form-label">Description</label>
+      <textarea id="inputIMdesc" class="form-control" rows="2"></textarea>
+    </div>
+  </div>
 
-          </div>
-          <div class="col">
+  <div class="row">
+  <div class="col-6">
+    <label class="form-label">Médias disponibles</label>
+
+    <div id="carouselMedias" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-indicators" id="carouselMediasIndicator">
+        <button type="button" data-bs-target="#carouselMedias" data-bs-slide-to="0" class="active" aria-current="true"
+          aria-label="Slide 1"></button>
+        <button type="button" data-bs-target="#carouselMedias" data-bs-slide-to="1" aria-label="Slide 2"></button>
+        <button type="button" data-bs-target="#carouselMedias" data-bs-slide-to="2" aria-label="Slide 3"></button>
+      </div>
+      <div class="carousel-inner" id="carouselMediasInner">
+        <div class="carousel-item active">
+          <img src="http://localhost/omk_genstory/files/medium/b46b0d2113a93ff21085c9f77739c3a84542f668.jpg"
+            class="d-block w-100" alt="...">
+        </div>
+        <div class="carousel-item">
+          <img src="http://localhost/omk_genstory/files/large/ec7762ace85732ec606893e10911a3dd3094522a.jpg"
+            class="d-block w-100" alt="...">
+        </div>
+        <div class="carousel-item">
+          <img src="http://localhost/omk_genstory/files/medium/8b99f01c2b7107e357644a6b41ec03ae78dbddd7.jpg"
+            class="d-block w-100" alt="...">
+        </div>
+      </div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#carouselMedias" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#carouselMedias" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+  </div>
+  <div class="col-6" id='selectMedia'>
+    <label class="form-label">Média sélectionné</label>
+    <img class="ChaoticumPapillonae">
+  </div>
+
+  </div>
+
+  <div class="row">
+    <div class="col-3">
+      <label for="inputIMdeb" class="form-label">Début</label>
+      <input type="number" class="form-control" id="inputIMdeb" aria-describedby="inputIMdebHelp">
+      <div id="inputIMdebHelp" class="form-text"></div>
+    </div>
+    <div class="col-3">
+      <label for="inputIMfin" class="form-label">Fin</label>
+      <input type="number" class="form-control" id="inputIMfin" aria-describedby="inputIMfinHelp">
+      <div id="inputIMfinHelp" class="form-text"></div>
+    </div>
+    <div class="col-6">
+      <div class="row">
+        <div class="col">
+          <label for="inputIMcolor" class="form-label">Couleur</label>
+          <input type="color" class="form-control form-control-color" id="inputIMcolor" value="black"
+            title="Choisir une couleur" aria-describedby="inputIMcolorHelp">
+
+        </div>
+        <div class="col">
           <label for="inputIMopa" class="form-label">Opacité</label>
           <input type="range" class="form-range" min="0" max="1" step="0.1" value="0.5" id="inputIMopa">
-            
-          </div>
 
-          </div>
-          <div class="row">
-          <div id="inputIMcolorHelp" class="form-text"></div>
-
-          </div>
-          
         </div>
+
+      </div>
+      <div class="row">
+        <div id="inputIMcolorHelp" class="form-text"></div>
+
+      </div>
+
     </div>
-    <div class="d-flex justify-content-between mt-2">
-        <button id='btnIMajout' class="btn btn-danger" >Ajouter</button>
-        <button id='btnIMmodif' class="btn btn-warning" >Modifier</button>
-    </div>
+  </div>
+  <div class="row" id="sgtRelations"></div>
+  <div class="d-flex justify-content-between mt-2">
+    <button id='btnIMajout' class="btn btn-danger">Ajouter</button>
+    <button id='btnIMmodif' class="btn btn-warning">Modifier</button>
+  </div>
+
 </div>
 <script>
+
 var sgtMedias = new Bloodhound({
   datumTokenizer: Bloodhound.tokenizers.obj.whitespace('o:title'),
   queryTokenizer: Bloodhound.tokenizers.whitespace,

@@ -14,6 +14,7 @@ function initStories() {
         '<p style="width:150px" >Merci de patienter...</p>' +
         '</div>'
     });
+
 }
 
 //fonction spécifiques à la page  
@@ -124,26 +125,32 @@ function deleteCard(e,d){
 }
 
 function createStoryRelations(e,d){
-    if(window.confirm("Are you sure to transform texts into items ?")){
-        mdWait.open();
-        //transforme les texte en items
-        $.ajax({
-            type: 'POST',
-            dataType: 'json',
-            url: urlSite + '/page/ajax?helper=Scenario&type=createRelations&json=1',
-            data: {'idItem':d['o:id'],'props':props.map(p=>p['o:term'])}
-        }).done(function (data) {
-            mdWait.close();
-            reloadStory(e, data);
-        })
-        .fail(function (e) {
-            console.log(e);
-        })
-        .always(function () {
-            mdWait.close();
-        });
-    
-    }
+    let cfm = new jBox('Confirm', {
+        theme: 'TooltipDark',
+        content: 'Are you sure to transform texts into items ?',
+        confirmButton: 'Do it!',
+        cancelButton: 'Nope',
+        confirm:t=>{
+            mdWait.open();
+            //transforme les texte en items
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: urlSite + '/page/ajax?helper=Scenario&type=createRelations&json=1',
+                data: {'idItem':d['o:id'],'props':props.map(p=>p['o:term'])}
+            }).done(function (data) {
+                mdWait.close();
+                reloadStory(e, data);
+            })
+            .fail(function (e) {
+                console.log(e);
+            })
+            .always(function () {
+                mdWait.close();
+            });
+        }
+    });
+    cfm.open();
 }
 
 function createStoriesCards(){
@@ -159,19 +166,20 @@ function createStoriesCards(){
     header.append('button').attr('type',"button").attr('class',"btn btn-danger mx-2")
         .html('<i class="fa-solid fa-eye-slash"></i>')
         .attr('title','Hide story')
-        .on('click',deleteCard)
+        .on('click',deleteCard);
     header.append('button').attr('type',"button").attr('class',"btn btn-danger mx-2")
         .html('<i class="fa-solid fa-marker"></i>')
         .attr('title','Edit story')
-        .on('click',editStory)
+        .on('click',editStory);
     header.append('button').attr('type',"button").attr('class',"btn btn-danger mx-2")
         .attr('title','Reload story')
         .html('<i class="fa-solid fa-rotate"></i>')
-        .on('click',reloadStory)
+        .on('click',reloadStory);
     header.append('button').attr('type',"button").attr('class',"btn btn-danger mx-2")
         .attr('title','Create relations')
         .html('<i class="fa-solid fa-diagram-project"></i>')
-        .on('click',createStoryRelations)        
+        .on('click',createStoryRelations);
+            
 
     card.append('img').attr('class',"card-img-top rounded mx-auto d-block")
         .style('max-width','fit-content')

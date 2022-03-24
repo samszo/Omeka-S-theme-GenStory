@@ -7,6 +7,10 @@ switch ($helper) {
     case 'Scenario':
         $scenario = $this->ScenarioFactory($this->params());
         echo $this->json($scenario);                
+        break;
+    case 'mediaRender':
+        $media = $this->api()->read('media',$this->params()->fromQuery('id'))->getContent();
+        echo $media->render();
     break;
 }
 
