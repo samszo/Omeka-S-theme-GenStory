@@ -713,7 +713,8 @@ function editDetail(e, data, entry) {
         //affiche le carousel des medias
         initMediasCarousel("carouselMedias", d["oa:hasSource"][0]);    
 
-        if(d["oa:hasTarget"])initMediaTarget('selectMedia', d["oa:hasTarget"][0]);
+        initMediaTarget('selectMedia', d["oa:hasTarget"] ? d["oa:hasTarget"][0] : false);
+        
     
         //ajoute les propriétés sélectionnées
         props.forEach(p=>{
