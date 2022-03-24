@@ -337,7 +337,7 @@ function editTrack(e,t) {
 }
 function deleteTrack(e,t) {
     //vérifie si l'utilisateur à le droit de modifier
-    if(t.p.value.entry['dcterms:creator:id'] != actant["o:id"]){
+    if(t.p.value.entry['dcterms:creator'][0]['o:id'] != actant["o:id"]){
         let html = '<div class="alert alert-danger" role="alert">'
             +'<i class="fa-solid fa-triangle-exclamation"></i>'
             +"<div>Interdit de supprimer une entrée d'un autre utilisateur.</div>"
