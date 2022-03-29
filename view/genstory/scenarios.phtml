@@ -8,7 +8,7 @@ $allowCreate=false;
 if ($this->userIsAllowed('Omeka\Entity\Resource', 'create')) {
   $allowCreate=true;
 }
-$isAdmin = $this->identity() && $this->identity()->getRole() == "global_admin" ? true : false;
+$isAdmin = $this->identity() && $this->identity()->getRole() == "editor" ? true : false;
 $translate = $this->plugin('translate');
 $actant = false;
 if($allowCreate)$actant=$this->CartoAffectFactory(['getActant'=>true,'user'=>$this->identity()]); 
