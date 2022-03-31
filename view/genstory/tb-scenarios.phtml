@@ -12,7 +12,7 @@ $allowCreate = $this->vars('allowCreate');
         <ul class="dropdown-menu" aria-labelledby="btngdListeScenario" id="ddmListeScenario">
         </ul>
     </div>
-    <?php if($isAdmin) : ?>
+    <?php if($allowCreate) : ?>
     <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils experts">
         <button id="btnAjoutScenario" type="button" class="btn btn-danger" >Create scenario</button>
     </div>

@@ -8,7 +8,7 @@ $allowCreate=false;
 if ($this->userIsAllowed('Omeka\Entity\Resource', 'create')) {
   $allowCreate=true;
 }
-$isAdmin = $this->identity() && $this->identity()->getRole() == "editor" ? true : false;
+$isAdmin = $this->identity() && $this->identity()->getRole() == "global_admin" ? true : false;
 $translate = $this->plugin('translate');
 $actant = false;
 if($allowCreate)$actant=$this->CartoAffectFactory(['getActant'=>true,'user'=>$this->identity()]); 
@@ -56,7 +56,7 @@ window.onload = initVisios;
     <div class="col bg-secondary text-white p-2">
       <?php echo $this->partial('genstory/tb-scenarios', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
       <?php 
-      if($isAdmin){
+      if($allowCreate){
         echo $this->partial('genstory/form-edit-index');
         echo $this->partial('genstory/form-add-scenario');
       }

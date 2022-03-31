@@ -937,7 +937,7 @@ function Timeliner(target) {
 								,'styles':{'nb':0}
 								,'s':currentTimeStore.value
 						}
-					}
+					}else objActions[idObj].actions[aName].text += action['value'].text == 'null' ? '' : ', '+action['value'].text
 					params = objActions[idObj].actions[aName];
 					if(me.isTransform(action['value'].prop)){
 						let t = me.getTransform(action['value'].prop);
