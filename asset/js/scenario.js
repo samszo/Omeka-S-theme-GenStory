@@ -202,20 +202,24 @@ function chargeScenario(e, d) {
     //on le fait dans tous les cas pour avoir la dernière version des targets
     //let refs = d["dcterms:isReferencedBy"][0]["@value"].split('-');
     //if (refs.length > 1 && actant) {
-    if (actant) {
-            mdWait.open();
-        let dataScena = {'idScenario':d["o:id"],'idActant':actant['o:id']}    
-        $.ajax({
-                type: 'POST',
+    mdWait.open();
+    let dataScena = {'idScenario':d["o:id"],'idActant':actant['o:id']}    
+    $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: urlSite + '/page/ajax?helper=Scenario&type=genereScenario&json=1&gen=fromUti',
+            data:dataScena
+        }).done(function (sc) {
+            $.ajax({
+                type: 'GET',
                 dataType: 'json',
-                url: urlSite + '/page/ajax?helper=Scenario&type=genereScenario&json=1&gen=fromUti',
-                data:dataScena
+                url: sc.json
             }).done(function (data) {
-                d.details = JSON.parse(data['schema:object'][0]['@value']);
+                d.details = data;
                 scenario = d;
                 initSuggestions();
                 showTimeliner();
-                timeliner.load(scenario.details);
+                timeliner.load(scenario.details);    
             })
             .fail(function (e) {
                 console.log(e);
@@ -223,12 +227,10 @@ function chargeScenario(e, d) {
             .always(function () {
                 mdWait.close();
             });
-    } else {
-        if (!d.details) d.details = JSON.parse(d['schema:object'][0]['@value']);
-        scenario = d;
-        showTimeliner();
-        timeliner.load(scenario.details);
-    }
+        })
+        .fail(function (e) {
+            console.log(e);
+        });
     d3.select("#btnCurrentScenario").text(d['o:title']);
     d3.select("#gbManipScenario").selectAll('button').style('visibility','visible');
 }
