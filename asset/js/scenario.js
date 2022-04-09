@@ -219,6 +219,7 @@ function chargeScenario(e, d) {
                 scenario = d;
                 initSuggestions();
                 showTimeliner();
+                timeliner.setTarget({});
                 timeliner.load(scenario.details);    
             })
             .fail(function (e) {
@@ -461,7 +462,7 @@ function createMediaCard(data) {
 
     let m = {},  d = data.p.value.entry;
     m.cardCont = d3.select("#mediaCards").append('div').attr('class','col')
-        .attr('id', 'cardMedia' + d.idTarget)
+        .attr('id', 'cardMedia' + d["oa:hasSource"][0]["o:id"])
     m.card = m.cardCont.append("div").attr("class", "card text-white bg-dark");
     //carte : header - medias 
     let headCard = m.card.append('div').attr('class', 'card-header')
