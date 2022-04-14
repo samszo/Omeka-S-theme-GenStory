@@ -773,14 +773,13 @@ function showSVG(d){
                 exit.remove();
             }
         );
-    //gestion de l'audio
+    /*Gestion de l'audio
     let audios = [];
     //filtre les média avec de l'audio
     mediaIndex.forEach(m => {
         let a = m.p.value.entry["oa:hasTarget"].filter(t=>isTypeAudio(t["o:media_type"]));
         audios = audios.concat(a);
     });
-    /*
     mainSvg.selectAll(".foAudio").data(audios).join(
         enter => {
             let fo = enter.append("foreignObject").attr('class','foAudio')
