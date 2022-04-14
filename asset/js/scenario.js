@@ -813,7 +813,6 @@ function showSVG(d){
             exit.remove();
         }
     );    
-    */
     audios.forEach(a=>{
         //vérifie l'existence de l'audio
         if(!d3.select('#audioScenario'+a['oid']).size()){
@@ -827,6 +826,7 @@ function showSVG(d){
                     .html("Votre navigateur ne supporte pas l'élément <code>audio</code>.");    
         }
     })
+    */
     
 };
 
