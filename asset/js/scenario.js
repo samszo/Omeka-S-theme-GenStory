@@ -1,9 +1,17 @@
 let timeliner, scenario, mediaCards = {},
     currentMedia, mediaIndex = [],
     mdEditIndex, mdAddScenario, mdShowMedia,
-    sgtLieu, sgtEvent, sgtActant, sgt;
+    sgtLieu, sgtEvent, sgtActant, sgt
+    , modeVisuScenario = 'edit', mainSvg;
        
 function initVisios() {
+    //dimensionne les block
+    let main = d3.select('#mainContainer'), mainPosi = main.node().getBoundingClientRect()
+    , mainHeight = window.innerHeight - mainPosi.top - (window.innerHeight / 3)-10;
+    main.style('height',mainHeight+'px');
+    d3.select('#mediaCards').style('height',mainHeight+'px');
+    d3.select('#visuScenario').style('height',mainHeight+'px');          
+
     showListeScenario();
     //gestion des boutons
     d3.select('#btnAjoutScenario').on('click', function (e) {
@@ -33,8 +41,8 @@ function initVisios() {
         '</div>'
     });
     mdEditIndex = new jBox('Modal', {
-        width: 480,
-        height: 600,
+        width: 500,
+        height: 800,
         theme: 'TooltipDark',
         overlay: false,
         title: "Edition de l'annotation",
@@ -99,11 +107,24 @@ function saveIndex(modif) {
         'category': document.getElementById('category').value,
         'dcterms:creator': actant['o:id'],
         'idScenario': scenario['o:id'],
-        'rt':'Scenario track'
+        'rt':'Scenario track',
+        'genstory:hasParam':[]
     }
     if (modif) dataIndex.idObj= document.getElementById('idObj').value;
+    //récupère les relations    
     props.forEach(p=>{
         dataIndex[p['o:term']]=p.relations.map(r=>{ return {'id':r['o:id']}; });
+        //vérifie si on récupère une fonction et ses paramètres
+        if(p['o:term']=="genstory:hasEvenement"){
+            dataIndex[p['o:term']].forEach(r=>{
+                let li = d3.select('#'+p['o:local_name'].substr(3)+'_'+r.id);
+                dataIndex['genstory:hasFonction']=li.select('p').text();
+                li.selectAll('div input').each(function(ipt,i){
+                    dataIndex['genstory:hasParam'].push(ipt['o:id'] ? {'id':ipt['o:id']} : ipt.value);                
+                })
+            })
+        }            
+
     })
 
     //enregistre dans la base
@@ -193,7 +214,8 @@ function showListeScenario() {
 
 function chargeScenario(e, d) {
     //supprime les médias cards
-    d3.select("#mediaCards").selectAll("div").remove();   
+    d3.select("#mediaCards").selectAll("div").remove();  
+    createSVG(); 
     mediaCards=[]; 
     mediaIndex=[];
     d3.select("#btnCurrentScenario").text('...');
@@ -234,6 +256,8 @@ function chargeScenario(e, d) {
         });
     d3.select("#btnCurrentScenario").text(d['o:title']);
     d3.select("#gbManipScenario").selectAll('button').style('visibility','visible');
+    d3.select("#gbModeVisuScenario").style('visibility','visible');
+    
 }
 function initSuggestions(){
 
@@ -284,21 +308,59 @@ function initSuggestions(){
         })        
     })      
 }
-function createRelationToTrack(p){        
+function createRelationToTrack(p,d){        
     let className = p['o:local_name'].substr(3);
     d3.select('#choose'+className).selectAll('li').remove();
-    d3.select('#choose'+className).selectAll('li').data(p.relations).enter()
-        .append('li').attr('class',"list-group-item").attr('id',r=>className+'_'+r['o;id'])
-        .html(r=>r['o:title'])
-        .append('button').attr('class',"btn btn-danger btn-sm mx-2")
+    let lis = d3.select('#choose'+className).selectAll('li').data(p.relations).enter()
+        .append('li').attr('class',"list-group-item").attr('id',r=>className+'_'+r['o:id'])
+        .html(r=>r['o:title']);
+    lis.append('button').attr('class',"btn btn-danger btn-sm mx-2")
             .html('X')
             .on('click',(e,d)=>{
                 let i = p.relations.map(r => r['o:id']).indexOf(d['o:id']);
                 p.relations.splice(i, 1);
                 createRelationToTrack();
             });
+    lis.each(function(r, i) {
+        if(r["@type"][1]=="genstory:evenement" && r["genstory:hasFonction"]) createFunctionParam(p, r, d)
+    });
+        
 }
-      
+function createFunctionParam(p, r, d){
+    let li = d3.select('#'+p['o:local_name'].substr(3)+'_'+r['o:id']);
+    li.append('p').html(r["genstory:hasFonction"][0]["@value"]);
+    //ajoute le formulaire des propriétés
+    let params = li.selectAll('div').data(r["genstory:hasParam"]).enter()
+        .append('div').attr('class',"input-group flex-nowrap");
+    params.append('span').attr('class','input-group-text').attr('id',(rp,i)=>'param_'+r['o:id']+'_'+i)
+        .html(rp=>rp["@value"]);
+    params.append('input').attr('class','form-control').attr('type','text')
+        .attr('placeholder',rp=>rp.property_label+':'+rp["@value"])
+        .attr('aria-label',rp=>rp.property_label+':'+rp["@value"])
+        .attr('aria-describedby',(rp,i)=>'param_'+r['o:id']+'_'+i)
+        .attr('id',(rp,i)=>{
+            rp.id='value_'+r['o:id']+'_'+i;
+            return rp.id;
+        })
+        .on('change',(e,rp)=>rp.value=e.currentTarget.value)
+        .each((rp,i)=>getValueInRelation(rp,d,i));
+}      
+function getValueInRelation(rp,d,i){
+    let v = '', ipt = d3.select('#'+rp.id);
+    //vérifie si les paramètre ont déjà été saisie
+    if(d['genstory:hasParam']){
+        if(d['genstory:hasParam'][i]['o:id']){
+            rp['o:id']=d['genstory:hasParam'][i]['o:id'];
+            v=d['genstory:hasParam'][i]['o:title'];            
+            ipt.attr('disabled',true);
+        }else v=d['genstory:hasParam'][i];            
+    }else if(d['genstory:has'+rp["@value"]]){
+        rp['o:id']=d['genstory:has'+rp["@value"]][0]['o:id'];
+        v=d['genstory:has'+rp["@value"]][0]['o:title'];        
+        ipt.attr('disabled',true);
+    }
+    ipt.node().value=v; 
+}
 function getSuggestionsData(p){
     let layers = scenario.details.layers.filter(l=>l.class["o:label"]==p['o:local_name'].substr(3));
     return layers.map(l=>l.source);
@@ -317,7 +379,8 @@ function deleteScenario(e) {
             itemsScenario.splice(i, 1);
             showListeScenario();  
             d3.select("#btnCurrentScenario").text('...');
-            d3.select("#gbManipScenario").selectAll('button').style('visibility','hidden');        
+            d3.select("#gbManipScenario").selectAll('button').style('visibility','hidden');
+            d3.select("#gbModeVisuScenario").style('visibility','hidden');        
         }
         new jBox('Notice', {
             content: data['message'],
@@ -387,7 +450,7 @@ function editSource(e,t) {
         console.log(d);
     })
 }
-function editScenario(e) {
+function adminScenario(e) {
     editItem(null, scenario, function(d){
         chargeScenario(e, d);
     })
@@ -397,7 +460,16 @@ function reloadScenario(e) {
         chargeScenario(null, data);
     });
 }
-
+function playScenario(e) {
+    modeVisuScenario = 'play';
+    d3.select('#mediaCards').style('display','none');
+    d3.select('#visuScenario').style('display','block');
+}
+function editScenario(e) {
+    modeVisuScenario = 'edit';
+    d3.select('#mediaCards').style('display','flex');
+    d3.select('#visuScenario').style('display','none');
+}
 
 function animate() {
     requestAnimationFrame(animate);
@@ -420,7 +492,11 @@ function showTimelinerTarget() {
             }
         }
     }
-    if (mediaIndex.length) showMediaIndex(timeliner.currentTimeStore.value);
+    if (mediaIndex.length){
+        showMediaIndex(timeliner.currentTimeStore.value);
+        showSVG();
+    } 
+
 }
 
 
@@ -651,6 +727,160 @@ function notContainedCard(arr) {
     };
 }
 
+function createSVG(){
+
+    let cont = d3.select('#visuScenario'), posi = d3.select('#mainContainer').node().getBoundingClientRect();
+    cont.select('svg').remove();    
+    let svg = cont.append("svg").attr("width", posi.width+'px').attr("height", posi.height+'px');
+    mainSvg = svg.append("g");   
+    svg.call(
+        d3.zoom()
+            .scaleExtent([.1, 4])
+            .on("zoom", function(event) { mainSvg.attr("transform", event.transform); })
+    );                
+
+};
+
+
+function showSVG(d){
+    let graphiques =  mediaIndex.filter(i => i.a == 'c' || i.a == 'u')
+    , fsTxt = 24;
+    //gestion des graphiques
+    mainSvg.selectAll("g").data(graphiques)
+        .join(
+            enter => {
+                let g = enter.append("g");
+                //gestion des images
+                joinImage(g);
+                //ajoute les textes
+                g.append("text")
+                    .text(d=>getMediaText(d))
+                    .attr("fill", (d)=>{ 
+                        return 'black'; 
+                    })
+                    .attr("y",(d,i)=>{ 
+                        return (i+1)*fsTxt; 
+                    })
+                    .attr("font-family", "Arial")
+                    .attr("font-size", fsTxt)
+                    .style("pointer-events", "none");
+            },
+            update => {
+                update.select('text').text(d=>getMediaText(d));
+                joinImage(update);                
+            },
+            exit => {
+                exit.remove();
+            }
+        );
+    //gestion de l'audio
+    let audios = [];
+    //filtre les média avec de l'audio
+    mediaIndex.forEach(m => {
+        let a = m.p.value.entry["oa:hasTarget"].filter(t=>isTypeAudio(t["o:media_type"]));
+        audios = audios.concat(a);
+    });
+    /*
+    mainSvg.selectAll(".foAudio").data(audios).join(
+        enter => {
+            let fo = enter.append("foreignObject").attr('class','foAudio')
+                .attr("width","200px").attr("height","40px").attr("x","300").attr("y","300");
+            fo.append('audio').attr('src',s=>s["o:original_url"])
+                .attr("controls","")
+                //.attr("autoplay",true)
+                .html("Votre navigateur ne supporte pas l'élément <code>audio</code>.");
+            fo.append('h1').html('TOTO');
+        },
+        update => {
+            update.select('audio').attr('src',s=>s["o:original_url"]);
+        },
+        exit => {
+            exit.remove();
+        }
+    );    
+    d3.select('#audioScenario').selectAll("audio").data(audios).join(
+        enter => {
+            enter.append('audio').attr('src',s=>s["o:original_url"])
+                .attr("controls","")
+                .style('height','30px')
+                //.attr("autoplay",true)
+                .html("Votre navigateur ne supporte pas l'élément <code>audio</code>.");
+        },
+        update => {
+            update.attr('src',s=>s["o:original_url"]);
+        },
+        exit => {
+            exit.remove();
+        }
+    );    
+    */
+    audios.forEach(a=>{
+        //vérifie l'existence de l'audio
+        if(!d3.select('#audioScenario'+a['oid']).size()){
+            d3.select('#audioScenario')
+                .append('audio')
+                    .attr('id','audioScenario'+a['oid'])
+                    .attr('src',a["o:original_url"])
+                    .attr("controls","")
+                    .style('height','30px')
+                    //.attr("autoplay",true)
+                    .html("Votre navigateur ne supporte pas l'élément <code>audio</code>.");    
+        }
+    })
+    
+};
+
+function joinImage(g){
+    let wImg = 200;
+    g.selectAll('image').data((d,i)=>
+            d.p.value.entry["oa:hasTarget"] ? 
+            d.p.value.entry["oa:hasTarget"].filter(t=>isTypeImage(t["o:media_type"])).map(img=>{return {'i':i,'img':img};})
+            : [] 
+        )
+    .join(
+        enter=>{
+            enter.append("image")
+            .attr('href',d=>d.img.thumbnail_display_urls.medium)
+            .attr('x',(d,i)=>(i+d.i)*wImg)
+            .attr('width',"200");
+        },
+        update=>{
+            update.attr('href',d=>d.img.thumbnail_display_urls.medium)
+                .attr('x',(d,i)=>(1+i+d.i)*wImg);
+        },
+        exit=>{
+            exit.remove();
+        }
+    )
+}
+
+function isTypeImage(type){
+    return ['image/bmp',
+    'image/gif',
+    'image/jp2',
+    'image/jpeg',
+    'image/pjpeg',
+    'image/png',
+    'image/tiff',
+    'image/x-icon'].includes(type);
+}
+function isTypeAudio(type){
+    return ['audio/midi',
+    'audio/mp4',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/x-aac',
+    'audio/x-aiff',
+    'audio/x-ms-wma',
+    'audio/x-ms-wax',
+    'audio/x-realaudio',
+    'audio/x-wav'].includes(type);
+}
+
+function getMediaText(m){
+    return m.p.text;
+}
+
 
 function showDetails(d) {
     let dataIndex = d.index.filter(i => i.a == 'c' || i.a == 'u');
@@ -723,7 +953,7 @@ function editDetail(e, data, entry) {
         props.forEach(p=>{
             p.relations = [];
             if(d[p['o:term']])p.relations = d[p['o:term']];                    
-            createRelationToTrack(p);            
+            createRelationToTrack(p,d);            
         })
 
         //vérifie si l'utilisateur à le droit de modifier

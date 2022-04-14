@@ -26,6 +26,9 @@ function editItem(e,d,cbClose){
     }
     d.modal.open();            
 }
+function notifyBug(){
+    window.open("https://github.com/samszo/Omeka-S-theme-GenStory/issues/new",'_blank');
+}
 
 function getItem(d, cb){
     mdWait.open();

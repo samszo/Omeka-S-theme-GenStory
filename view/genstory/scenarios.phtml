@@ -51,7 +51,7 @@ const itemsScenario = <?php echo json_encode($scenarios); ?>
 window.onload = initVisios;
 </script>
 
-<div class="container-fluid h-75">
+<div class="container-fluid">
   <div class="row">
     <div class="col bg-secondary text-white p-2">
       <?php echo $this->partial('genstory/tb-scenarios', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
@@ -61,9 +61,9 @@ window.onload = initVisios;
         echo $this->partial('genstory/form-add-scenario');
       }
       ?>
-      <div class="container pt-4">
-        <div id="mediaCards" class="row row-cols-1 row-cols-md-6 g-4" style="height: 328px;overflow-y: scroll;" ></div>
-            
+      <div id="mainContainer" class="container pt-4">
+        <div id="mediaCards" class="row row-cols-1 row-cols-md-6 g-4" style="overflow-y: scroll;" ></div>
+        <div id="visuScenario" class="row" style="display:none;background-color:white;" ></div>            
       </div>
     </div>
   </div>

@@ -20,9 +20,15 @@ $allowCreate = $this->vars('allowCreate');
     <div class="input-group">
         <div class="input-group-text" id="btnCurrentScenario">...</div>
     </div>    
+    <div id="gbModeVisuScenario" class="btn-group mx-2" role="group" aria-label="Mode de visusalisation du scenario" style="visibility:hidden">
+        <input onclick="editScenario(this)" type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioEdit" autocomplete="off" checked>
+        <label class="btn btn-outline-danger" for="btnModeVisuScenarioEdit"><i class="fa-solid fa-laptop-code"></i></label>    
+        <input onclick="playScenario(this)" type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioPlay" autocomplete="off" >
+        <label class="btn btn-outline-danger" for="btnModeVisuScenarioPlay"><i class="fa-solid fa-display"></i></label>    
+    </div>
     <div id="gbManipScenario" class="btn-group me-2" role="group" aria-label="Manipulation scenario">
-        <button type="button" onclick="editScenario(this)" class="btn btn-danger mx-2" 
-        title='Edit scenario' style="visibility:hidden" >
+        <button type="button" onclick="adminScenario(this)" class="btn btn-danger mx-2" 
+        title='Admin scenario' style="visibility:hidden" >
            <i class="fa-solid fa-marker"></i></button>
         <button type="button" onclick="reloadScenario(this)" class="btn btn-danger mx-2" 
         title='Reload scenario' style="visibility:hidden" >
@@ -34,6 +40,11 @@ $allowCreate = $this->vars('allowCreate');
         <button type="button" onclick="createModel(this)" class="btn btn-danger mx-2" 
         title='Create model' style="visibility:hidden" >
            <i class="fa-solid fa-diagram-project"></i></button>
+        <button type="button" onclick="notifyBug(this)" class="btn btn-danger mx-2" 
+            title='Notify bug' style="visibility:hidden" >
+            <i class="fa-solid fa-bug"></i></button>
+    </div>
+    <div id="audioScenario" class="btn-group me-2" role="group" >
+    </div>            
 
-  </div>
 </div>
