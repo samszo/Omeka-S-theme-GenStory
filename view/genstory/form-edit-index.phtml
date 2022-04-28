@@ -169,14 +169,36 @@ $('#inputIMcolor').on('change',function(){
 $('#inputIMopa').on('change',function(){
   document.getElementById('inputIMcolorHelp').innerHTML = getColorRGBA($("#inputIMopa").val(), $("#inputIMcolor").val());
 })
-$('#inputIMdeb').on('change',function(){
-  document.getElementById('inputIMdebHelp').innerHTML = secondsToHms(document.getElementById('inputIMdeb').value);
+$('#inputIMdeb')
+.on('focus',e=>this.oldvalue = this.value)
+.on('change',function(){
+  if(coherenceDate(this.value, document.getElementById('inputIMfin').value)){
+    document.getElementById('inputIMdebHelp').innerHTML = secondsToHms(this.value);
+  }else this.value =this.oldvalue
 })
-$('#inputIMfin').on('change',function(){
-  document.getElementById('inputIMfinHelp').innerHTML = secondsToHms(document.getElementById('inputIMfin').value);
+$('#inputIMfin')
+.on('focus',e=>this.oldvalue = this.value)
+.on('change',function(){
+  if(coherenceDate(document.getElementById('inputIMdeb',this.value).value)){
+    document.getElementById('inputIMfinHelp').innerHTML = secondsToHms(this.value);
+  }else this.value =this.oldvalue
 })
 function getColorRGBA(opa, color){
   return 'rgba(' + parseInt(color.slice(-6, -4), 16) + ',' + parseInt(color.slice(-4, -2), 16) + ',' + parseInt(color.slice(-2), 16) 
     + ',' + opa + ')'
+}
+function coherenceDate(deb, fin){
+  if(deb >= fin){
+    new jBox('Notice', {
+          content: "La date de début doit précéder la date de fin",
+          color: 'black',
+          position: {
+              y: 'center',
+              x: 'center'
+          }
+      });        
+    return false;
+  }
+  return true;  
 }
 </script>

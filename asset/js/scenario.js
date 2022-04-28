@@ -829,6 +829,7 @@ function showSVG(d){
     
 };
 
+
 function joinImage(g){
     let wImg = 200;
     g.selectAll('image').data((d,i)=>
@@ -844,7 +845,8 @@ function joinImage(g){
             .attr('width',"200");
         },
         update=>{
-            update.attr('href',d=>d.img.thumbnail_display_urls.medium)
+            update
+                .attr('href',d=>d.img.thumbnail_display_urls.medium)
                 .attr('x',(d,i)=>(1+i+d.i)*wImg);
         },
         exit=>{
