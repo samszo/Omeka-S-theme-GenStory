@@ -1,5 +1,5 @@
 <!-- formulaire pour l'indexation manuelle' -->
-<div class="container bg-dark text-white p-2" style="display:none" id="mdEditIndex">
+<div class="container bg-dark text-white p-2" style="display:none" id="mdEditTrack">
   <input id="idObj" type="hidden" value="">
   <input id="idCat" type="hidden" value="">
   <input id="idGroup" type="hidden" value="">
@@ -16,9 +16,13 @@
         <input class="typeahead" type="text" placeholder="Choisir un média">
       </div>
     </div>
-    <div class="col-12">
+    <div class="col-9">
       <label for="inputIMtitre" class="form-label">Titre</label>
       <input type="text" class="form-control" id="inputIMtitre" />
+    </div>
+    <div class="col-3">
+      <label for="inputOrdre" class="form-label">Ordre</label>
+      <input type="number" class="form-control" id="inputOrdre" >
     </div>
     <div class="col-12">
       <label for="inputIMdesc" class="form-label">Description</label>
@@ -105,6 +109,7 @@
   <div class="d-flex justify-content-between mt-2">
     <button id='btnIMajout' class="btn btn-danger">Ajouter</button>
     <button id='btnIMmodif' class="btn btn-warning">Modifier</button>
+    <button id='btnIMdelete' class="btn btn-danger" >Supprimer</button>
   </div>
 
 </div>
@@ -188,7 +193,7 @@ function getColorRGBA(opa, color){
     + ',' + opa + ')'
 }
 function coherenceDate(deb, fin){
-  if(deb >= fin){
+  if(Number(deb) >= Number(fin)){
     new jBox('Notice', {
           content: "La date de début doit précéder la date de fin",
           color: 'black',
@@ -201,4 +206,17 @@ function coherenceDate(deb, fin){
   }
   return true;  
 }
+function secondsToHms(seconds) {
+    seconds = Number(seconds);
+    var h = Math.floor(seconds % (3600 * 24) / 3600);
+    var m = Math.floor(seconds % 3600 / 60);
+    var s = Math.floor(seconds % 60);
+    var mili = (seconds-Math.floor(seconds)).toFixed(2).split('.')[1];
+
+    var hDisplay = h > 0 ? (h >= 10 ? h + ":" : "0" + h + ":") : "00:";
+    var mDisplay = m > 0 ? (m >= 10 ? m + ":" : "0" + m + ":") : "00:";
+    var sDisplay = s > 0 ? (s >= 10 ? s + ":" : "0" + s + ":") : "00:";
+    return hDisplay + mDisplay + sDisplay + mili;
+}
+
 </script>

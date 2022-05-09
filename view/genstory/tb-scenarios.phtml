@@ -14,32 +14,36 @@ $allowCreate = $this->vars('allowCreate');
     </div>
     <?php if($allowCreate) : ?>
     <div class="btn-group btn-group-sm me-2" role="group" aria-label="Outils experts">
-        <button id="btnAjoutScenario" type="button" class="btn btn-danger" >Create scenario</button>
+        <button id="btnAjoutScenario" onclick="createScenario()" type="button" class="btn btn-danger" >Create scenario</button>
     </div>
     <?php endif; ?>
     <div class="input-group">
         <div class="input-group-text" id="btnCurrentScenario">...</div>
     </div>    
     <div id="gbModeVisuScenario" class="btn-group mx-2" role="group" aria-label="Mode de visusalisation du scenario" style="visibility:hidden">
-        <input onclick="editScenario(this)" type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioEdit" autocomplete="off" checked>
+        <input type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioEdit" autocomplete="off" checked>
         <label class="btn btn-outline-danger" for="btnModeVisuScenarioEdit"><i class="fa-solid fa-laptop-code"></i></label>    
-        <input onclick="playScenario(this)" type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioPlay" autocomplete="off" >
+        <input type="radio" class="btn-check" name="btnModeVisuScenario" id="btnModeVisuScenarioPlay" autocomplete="off" >
         <label class="btn btn-outline-danger" for="btnModeVisuScenarioPlay"><i class="fa-solid fa-display"></i></label>    
     </div>
     <div id="gbManipScenario" class="btn-group me-2" role="group" aria-label="Manipulation scenario">
-        <button type="button" onclick="adminScenario(this)" class="btn btn-danger mx-2" 
+        <button type="button" id="btnAdminScenario" class="btn btn-danger mx-2" 
         title='Admin scenario' style="visibility:hidden" >
            <i class="fa-solid fa-marker"></i></button>
+        <!--
         <button type="button" onclick="reloadScenario(this)" class="btn btn-danger mx-2" 
         title='Reload scenario' style="visibility:hidden" >
            <i class="fa-solid fa-rotate"></i></button>
-        <button type="button" onclick="deleteScenario(this)" class="btn btn-danger mx-2" 
+        -->
+        <button type="button" id="btnDeleteScenario" class="btn btn-danger mx-2" 
         title='Delete scenario' style="visibility:hidden" 
         data-confirm="Do you really want to delete this scenario and all associated tracks ?" >
            <i class="fa-solid fa-trash-can"></i></button>
+        <!--
         <button type="button" onclick="createModel(this)" class="btn btn-danger mx-2" 
         title='Create model' style="visibility:hidden" >
            <i class="fa-solid fa-diagram-project"></i></button>
+        -->
         <button type="button" onclick="notifyBug(this)" class="btn btn-danger mx-2" 
             title='Notify bug' style="visibility:hidden" >
             <i class="fa-solid fa-bug"></i></button>

@@ -154,6 +154,9 @@ function timeAtLayer(layer, t) {
 	// this expect layer to be sorted
 	// not the most optimized for now, but would do.
 
+	// can't do anything
+	if (t === undefined) return;
+
 	var values = layer.values;
 	var i, il, entry, prev_entry;
 
@@ -162,26 +165,39 @@ function timeAtLayer(layer, t) {
 	// can't do anything
 	if (il === 0) return;
 
-	if (layer._mute) return
+	if (layer._mute) return;
 
 	// find boundary cases
 	entry = values[0];
 	if (t < entry.time) {
-		return {
+		return [{
 			value: entry.value,
 			can_tween: false, // cannot tween
 			keyframe: false // not on keyframe
-		};
+		}];
 	}
+	//pour gérer la superposition des tracks
+	return getmultitracks(t, layer);
+	//pour gérer une track unique avec tween
+	//return [gettrack(t, layer)];
+
+}
+
+//pour gérer les animations normales
+function gettrack(t, layer) {
+	let i, il = layer.values.length
+	, entry = layer.values[0]
+	, prev_entry;
 
 	for (i=0; i<il; i++) {
 		prev_entry = entry;
-		entry = values[i];
+		entry = layer.values[i];
 
 		if (t === entry.time) {
 			// only exception is on the last KF, where we display tween from prev entry
 			if (i === il - 1) {
 				return {
+					idLayer:layer.idLayer,
 					idEntry: i-1,
 					entry: prev_entry,
 					tween: prev_entry.tween,
@@ -194,6 +210,7 @@ function timeAtLayer(layer, t) {
 				};
 			}
 			return {
+				idLayer:layer.idLayer,
 				idEntry: i,
 				entry: entry,
 				tween: entry.tween,
@@ -209,6 +226,7 @@ function timeAtLayer(layer, t) {
 			// possibly a tween
 			if (!prev_entry.tween) { // or if value is none
 				return {
+					idLayer:layer.idLayer,
 					idEntry: i-1,					
 					value: prev_entry.value,
 					tween: false,
@@ -231,6 +249,7 @@ function timeAtLayer(layer, t) {
 			var new_value = prev_entry.value + Tweens[tween](k) * value_diff;
 
 			return {
+				idLayer:layer.idLayer,
 				idEntry: i-1,					
 				entry: prev_entry,
 				value: new_value,
@@ -248,8 +267,60 @@ function timeAtLayer(layer, t) {
 		value: entry.value,
 		can_tween: false,
 		keyframe: false
-	};
+	};	
+}
 
+//pour gérer la superposition des tracks
+function getmultitracks(t, layer) {
+	let rs = [], rsDbl = []
+	, i, il = layer.values.length
+	, entry = layer.values[0]
+	, prev_entry;
+	for (i=0; i<il; i++) {
+		prev_entry = entry;
+		entry = layer.values[i];
+
+		if (t === entry.time && !rsDbl[entry.idObj]) {
+			rsDbl[entry.idObj]=1;
+			rs.push({
+			idLayer:layer.idLayer,
+			idEntry: i,
+			entry: entry,
+			tween: entry.tween,
+			can_tween: il > 1,
+			value: entry.value,
+			keyframe: true, // il > 1
+			text:entry.text ? entry.text : 'null',
+			prop:entry.prop ? entry.prop : 'null',
+			idObj:entry.idObj ? entry.idObj : 'null'
+			});
+		}
+		if (t > prev_entry.time && t < entry.time && prev_entry.idObj == entry.idObj && !rsDbl[prev_entry.idObj]) {
+			rsDbl[prev_entry.idObj]=1;
+			rs.push({
+				idLayer:layer.idLayer,
+				idEntry: i-1,					
+				value: prev_entry.value,
+				tween: false,
+				entry: prev_entry,
+				can_tween: true,
+				keyframe: false,
+				text:prev_entry.text ? prev_entry.text : 'null',
+				prop:prev_entry.prop ? prev_entry.prop : 'null',
+				idObj:prev_entry.idObj ? prev_entry.idObj : 'null'
+			});
+		}
+	}
+	if(rs.length){
+		return rs;
+	}else{
+		// time is after all entries
+		return [{
+			value: entry.value,
+			can_tween: false,
+			keyframe: false
+		}];
+	}
 }
 
 

@@ -1,4 +1,5 @@
 <?php
+$idScenario = $this->params()->fromQuery('idScenario') ? $this->params()->fromQuery('idScenario') : 0;
 
 $allowAnnotation=false;
 if ($this->userIsAllowed(\Annotate\Entity\Annotation::class, 'create')) {
@@ -28,8 +29,27 @@ foreach ($propsList as $pl) {
     $props[]=$p[0];
 }
 
+//récupère les suggestions
+$props=$this->ScenarioFactory(['type'=>'getRtSuggestion','label'=>'Scenario track','urlApi'=>$this->url('api', [], true)]); 
 
+$this->headScript()->appendFile($this->assetUrl('js/scenario-ihm.js'));
 $this->headScript()->appendFile($this->assetUrl('js/scenario.js'));
+
+//charge le scenario passer en paramètre
+$getScenario=false;
+if($idScenario){
+  $getScenario =  $this->api()->read('items',$idScenario)->getContent();
+  //et les scripts associés
+  $medias  = $getScenario->media();
+  foreach ($medias as $m) {
+      switch ($m->displayTitle()) {
+          case 'script':
+            $this->headScript()->appendFile($m->originalUrl());
+            break;                
+      }
+  }  
+}
+
 
 ?>
 <script>
@@ -38,7 +58,7 @@ const itemsScenario = <?php echo json_encode($scenarios); ?>
 
     , actant = <?php echo json_encode($actant); ?>    
 
-    , props = <?php echo json_encode($props); ?>    
+    , sgtProps = <?php echo json_encode($props); ?>    
 
     , urlApi = '<?php echo $this->url('api', [], true); ?>'
     , urlAdmin = '<?php echo $this->url('admin', [], true); ?>'
@@ -46,19 +66,20 @@ const itemsScenario = <?php echo json_encode($scenarios); ?>
     , urlPosterVideo="<?php echo $this->assetUrl('images/video-poster.png'); ?>"
     , urlSuggestStory =  urlApi+'/items?resource_class_id=<?php echo $rcHistoire->id(); ?>'
       +'&property[0][property]=1&property[0][type]=in&property[0][text]=%QUERY&sort_by=title'
-;
+    , getScenario = <?php echo json_encode($getScenario); ?>;
 
 window.onload = initVisios;
 </script>
 
-<div class="container-fluid">
+<div class="container-fluid h-75">
   <div class="row">
     <div class="col bg-secondary text-white p-2">
       <?php echo $this->partial('genstory/tb-scenarios', ['isAdmin'=>$isAdmin,'allowCreate'=>$allowCreate]);?>
       <?php 
       if($allowCreate){
-        echo $this->partial('genstory/form-edit-index');
+        echo $this->partial('genstory/form-edit-track');
         echo $this->partial('genstory/form-add-scenario');
+        echo $this->partial('genstory/form-add-layers');
       }
       ?>
       <div id="mainContainer" class="container pt-4">
@@ -73,11 +94,4 @@ window.onload = initVisios;
 
 import { Timeliner } from '<?php echo $this->assetUrl('js/timeliner/timeliner.js'); ?>'
 
-var actions = {};
-
-// initialize timeliner
-timeliner = new Timeliner(actions);
-timeliner.hide();
-timeliner.fctKeyframe = addKeyframe;
-timeliner.fctKeyframeMove = changeKeyframe
 </script>

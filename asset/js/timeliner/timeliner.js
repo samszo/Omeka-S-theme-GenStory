@@ -71,14 +71,32 @@ function Timeliner(target) {
 		undo_manager.save(new UndoState(data, 'Loaded'), true);
 	});
 
+	this.getAllEntry = function(){
+		let entries = [];
+		layers.forEach(l => {
+			entries = entries.concat(l.values);
+		});
+		return entries;
+	};
 	this.getLayer = function(key, val){
 		return layers.filter(l=>l[key]==val);
 	};
+	this.getLayers = function(){
+		return layers;
+	};	
 	this.addTrack = function(layer,entry){
 		var v = utils.findTimeinLayer(layer, entry.time);
 		layer.values.splice(v, 0, entry);
 		return v;
 	};
+	this.deleteTrack = function deleteTrack(iLayer, iEntry) {
+		layers[iLayer].values.splice(iEntry, 1);
+		if(me.fctTargetNotify)me.fctTargetNotify(target[iLayer]);
+		repaintAll();
+	};
+
+
+
 
 	this.fctKeyframe = false;
 	dispatcher.on('keyframe', function(layer, value) {
@@ -229,9 +247,15 @@ function Timeliner(target) {
 		repaintAll();
 	});
 
+	this.fctDeleteLayer=false;
 	dispatcher.on('layer.delete', function(layer) {
-		deleteLayer(layer);
-		repaintAll();
+		if(me.fctDeleteLayer)me.fctDeleteLayer(layer);
+		else{
+			var ok = confirm('Are you sure you wish to delete layer ' + layer.name + ' ?');
+			if (ok) {
+				deleteLayer(layer);
+			}	
+		}
 	});
 
 	var start_play = null,
@@ -264,16 +288,19 @@ function Timeliner(target) {
 		loop_play = loop_play ? false : true;
 	}
 
+	this.fctPlay = false;
 	function startPlaying() {
 		// played_from = timeline.current_frame;
 		start_play = performance.now() - data.get('ui:currentTime').value * 1000;
 		layer_panel.setControlStatus(true);
+		if(me.fctPlay)me.fctPlay();
 		// dispatcher.fire('controls.status', true);
 	}
-
+	this.fctPause = false;
 	function pausePlaying() {
 		start_play = null;
 		layer_panel.setControlStatus(false);
+		if(me.fctPause)me.fctPause();
 		// dispatcher.fire('controls.status', false);
 	}
 
@@ -300,18 +327,22 @@ function Timeliner(target) {
 	});
 
 
+	this.fctCurrentTimeChange = false;
 	function setCurrentTime(value) {
 		value = Math.max(0, value);
 		currentTimeStore.value = value;
-
+		console.log('setCurrentTime:'+value);
 		if (start_play) start_play = performance.now() - value * 1000;
 		repaintAll();
+		if(me.fctCurrentTimeChange)me.fctCurrentTimeChange(value,start_play);
 		// layer_panel.repaint(s);
 	}
 
+	this.fctTargetNotify = false;
 	dispatcher.on('target.notify', function(layer, value) {
 		if (target){
 			target[layer.id] = {'name':layer.name, 'layer':layer, 'value':value};
+			if(me.fctTargetNotify)me.fctTargetNotify(target[layer.id]);
 		} 
 	});
 
@@ -672,12 +703,16 @@ function Timeliner(target) {
 	// add layer
 	var plus = new IconButton(12, 'plus', 'New Layer', dispatcher);
 	plus.onClick(function() {
-		var name = prompt('Layer name?');
-		addLayer(name);
 
-		undo_manager.save(new UndoState(data, 'Layer added'));
-
-		repaintAll();
+		var name="New Layer"
+		if(me.fctAddLayer){
+			me.fctAddLayer();
+		}else{
+			name = prompt('Layer name ?',name);
+			addLayer(name);
+			undo_manager.save(new UndoState(data, 'Layer added'));
+			repaintAll();	
+		}
 	});
 	style(plus.dom, button_styles);
 	bottom_right.appendChild(plus.dom);
@@ -853,13 +888,14 @@ function Timeliner(target) {
 		right.style.left = Settings.LEFT_PANE_WIDTH + 'px';
 	}
 
-	function addLayer(name) {
+	function addLayer(name, id) {
+		
 		var layer = new LayerProp(name);
 
 		layers = layer_store.value;
 		layers.push(layer);
 		layer.idLayer = layers.indexOf(layer);
-
+		layer.id = id;
 		layer_panel.setState(layer_store);
 		return layer;
 	}
@@ -872,15 +908,10 @@ function Timeliner(target) {
 			if(l.id==layer.id)iLayer=i;
 		});
 		layers.splice(iLayer,1);
-		delete target[layer.id];		
+		delete target[layer.id];
+		repaintAll();		
 	}
 	this.deleteLayer = deleteLayer;
-
-	function deleteTrack(idLayer, idEntry) {
-		layers[idLayer].values.splice(idEntry, 2);
-		repaintAll();
-	}
-	this.deleteTrack = deleteTrack;
 
 	this.dispose = function dispose() {
 
@@ -900,10 +931,10 @@ function Timeliner(target) {
 		return cssTransform[s];
 	};
 	this.hide = function() {
-		root.style.display='none';
+		root.firstChild.style.display='none';
 	};
 	this.show = function(snapType) {
-		root.style.display='block';
+		root.firstChild.style.display='block';
 		//snap la fenêtre
 		widget.setSnapType(snapType);
 		widget.resizeEdges();
@@ -918,41 +949,45 @@ function Timeliner(target) {
 	this.getObjetActions=function(){
 		let objActions = {};
 		for (const key in target ){
-			let action = target[key]
-				, ids = action['value'].idObj
+			let action = target[key];
+			action['value'].forEach(v=>{
+				let ids = v.idObj
 				, params; 
-			if (ids) {
-				const arrIds = typeof(ids)=="string" ? ids.split(',') : [ids];
-				arrIds.forEach(idObj => {				
-					if(!objActions[idObj])objActions[idObj]={'e':document.getElementById(idObj),'actions':{}};
-					let aName = me.isTransform(action['value'].prop) || me.isTransform(action['value'].prop) ? 'styles' : action.name;
-					if(!objActions[idObj].actions[aName]){
-						objActions[idObj].actions[aName]={
-								'action':action.name
-								, 'idLayer':action.layer.idLayer
-								, 'value':action['value']
-								, 'prop':action['value'].prop
-								,'text':action['value'].text == 'null' ? '' : action['value'].text  
-								,'val':action['value'].value
-								,'styles':{'nb':0}
-								,'s':currentTimeStore.value
+				if (ids && ids!='null') {
+					const arrIds = typeof(ids)=="string" ? ids.split(',') : [ids];
+					arrIds.forEach(idObj => {				
+						if(!objActions[idObj])objActions[idObj]={'e':document.getElementById(idObj),'actions':{}};
+						let aName = me.isTransform(v.prop) || me.isTransform(v.prop) ? 'styles' : action.name;
+						if(!objActions[idObj].actions[aName]){
+							objActions[idObj].actions[aName]={
+									'action':action.name
+									, 'idLayer':action.layer.idLayer
+									, 'value':v
+									, 'prop':v.prop
+									,'text':v.text == 'null' ? '' : v.text  
+									,'val':v.value
+									,'styles':{'nb':0}
+									,'s':currentTimeStore.value
+							}
+						}else objActions[idObj].actions[aName].text += v.text == 'null' ? '' : ', '+v.text
+
+						params = objActions[idObj].actions[aName];
+						if(me.isTransform(v.prop)){
+							let t = me.getTransform(v.prop);
+							if(!params.styles['transform']) params.styles['transform']='';
+							params.styles['transform']+=` ${v.prop}(${v.value}${t.u ? t.u : ''}) `;
+							params.styles.nb ++;					
 						}
-					}else objActions[idObj].actions[aName].text += action['value'].text == 'null' ? '' : ', '+action['value'].text
-					params = objActions[idObj].actions[aName];
-					if(me.isTransform(action['value'].prop)){
-						let t = me.getTransform(action['value'].prop);
-						if(!params.styles['transform']) params.styles['transform']='';
-						params.styles['transform']+=` ${action['value'].prop}(${action['value'].value}${t.u ? t.u : ''}) `;
-						params.styles.nb ++;					
-					}
-					if(me.isStyle(action['value'].prop)){
-						params.styles[action['value'].prop]=`${action['value'].value}`;					
-						params.styles.nb ++;					
-					}
-					objActions[idObj].actions[aName]=params;
-				});
-	
-			}
+						if(me.isStyle(v.prop)){
+							params.styles[v.prop]=`${v.value}`;					
+							params.styles.nb ++;					
+						}
+						objActions[idObj].actions[aName]=params;
+					});
+		
+				}
+
+			});
 		}
 		return objActions;
 	
