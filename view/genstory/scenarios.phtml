@@ -32,6 +32,7 @@ foreach ($propsList as $pl) {
 //récupère les suggestions
 $props=$this->ScenarioFactory(['type'=>'getRtSuggestion','label'=>'Scenario track','urlApi'=>$this->url('api', [], true)]); 
 
+$this->headScript()->appendFile($this->assetUrl('js/howler.min.js'));
 $this->headScript()->appendFile($this->assetUrl('js/scenario-ihm.js'));
 $this->headScript()->appendFile($this->assetUrl('js/scenario.js'));
 

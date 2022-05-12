@@ -1,7 +1,8 @@
-let currentScenario;
+let currentScenario, contextAudio;
 
 
 function initVisios() {
+    contextAudio = new AudioContext();
     showListeScenario();
     if(getScenario)chargeScenario(null,getScenario);
 }

@@ -4,6 +4,7 @@ class scenario {
         this.conteneur = params.conteneur ? params.conteneur : d3.select("#"+params.idConteneur);
         this.mediaCards = [];
         this.tracks = [];
+        this.mapTracks = [];
         this.details = [];
         this.timeliner = params.timeliner ? params.timeliner : false;
         this.dataTime = -1;
@@ -124,7 +125,8 @@ class scenario {
                     url: sc.json
                 }).done(function (data) {
                     me.details = data;
-                    initIHM();
+                    setMapTracks();
+                    initIHM();                    
                 })
                 .fail(function (e) {
                     throw new me.scenarioException(e);
@@ -138,6 +140,17 @@ class scenario {
                 console.log(e)
             });            
 
+        }
+
+        function setMapTracks(){
+            let values = [];
+            me.details.layers.forEach(l=>{
+                l.values.forEach(v=>{
+                    if(v.text)values.push(v);
+                });
+            })     
+            me.mapTracks = d3.group(values, d => d.text);       
+            console.log(me.mapTracks.get('Faire la sieste'));
         }
 
         function addScript(){
@@ -316,18 +329,17 @@ class scenario {
         };
         
 
-        function showSVG(){
-            let medias =  me.tracks.filter(i => i.a == 'c' || i.a == 'u')
-            , fsTxt = 24;
+        function showSVG(medias){
+            let fsTxt = 24;
             //gestion des medias
             me.mainSvg.selectAll("g").data(medias)
                 .join(
                     enter => {
                         let g = enter.append("g")
-                            .attr('class','trackCreate trackVisible');
+                            .attr('class',d=>'idSource'+d.p.value.entry["oa:hasSource"][0]["o:id"]+' trackCreate trackVisible');
                         //gestion des medias
                         joinImage(g);
-                        joinSound(g);
+                        //joinSound(g);
                         //ajoute les textes
                         g.append("text")
                             .text(d=>getMediaText(d))
@@ -344,14 +356,14 @@ class scenario {
                     },
                     update => {
                         update
-                            .attr('class','trackUpdate trackVisible')                        
+                        .attr('class',d=>'idSource'+d.p.value.entry["oa:hasSource"][0]["o:id"]+' trackCreate trackVisible')
                             .select('text').text(d=>getMediaText(d));
                         joinImage(update); 
-                        joinSound(update)               
+                        //joinSound(update)               
                     },
                     exit => {
                         exit.remove();
-                        stopSound(exit);
+                        //stopSound(exit);
                     }
                 );
             
@@ -465,6 +477,15 @@ class scenario {
             'audio/x-ms-wax',
             'audio/x-realaudio',
             'audio/x-wav'].includes(type);
+        }
+        function isTypeVideo(type){
+            return ['video/mp4',
+            'application/x-mpegURL',
+            'video/MP2T',
+            'video/3gpp',
+            'video/quicktime',
+            'video/x-msvideo',
+            'video/x-ms-wmv'].includes(type);
         }
         
         function getMediaText(m){
@@ -1048,23 +1069,26 @@ class scenario {
         }
 
         this.setCurrentTime = function(t, st){
-            //initialise les cards une fois par seconde
-            if(t > me.dataTime){
-                //cache toutes les card
-                me.mediaCards.forEach(mc=>mc.cardCont.style('display','none'));
-            }
+            if(me.dataTime == t)return;
+            console.log('setCurrentTime : '+t);
             me.dataTime = t;
-
-            //selectionne les médias
+            //récupère les tracks 
             getMediaTracks();
-            //ordonne les tracks 
-            me.tracks =  d3.sort(me.tracks.filter(i => i.a == 'c' || i.a == 'u'),d => d.p.value.entry.ordre)
-            //affiche le svg
-            showSVG();
-            me.tracks.forEach(t=>{              
-            //layer.value.forEach(v=>{
+            //supprime les éléments obsolètes
+            let delTracks =  me.tracks.filter(i => i.a == 'd');
+            delTracks.forEach(t=>{
+                let idCard = t.p.value.entry[me.idCard][0]["o:id"];
+                me.mediaCards[idCard].cardCont.style('display','none');
+                if(me.mediaCards[idCard].audio)me.mediaCards[idCard].audio.stop();
+            })
+
+            //ordonne les tracks à afficher
+            let currentTracks =  d3.sort(me.tracks.filter(i => i.a == 'c' || i.a == 'u'),d => d.p.value.entry.ordre)
+            //création du svg
+            showSVG(currentTracks);
+            //gestion des infos des tracks
+            currentTracks.forEach(t=>{              
                 let v = t.p.value;
-                //met à jour les infos de la valeur
                 if(v.idObj && v.entry[me.idCard]){
                     let idCard = v.entry[me.idCard][0]["o:id"];
                     showMedias(me.mediaCards[idCard]);
@@ -1078,46 +1102,13 @@ class scenario {
                     if(me.mediaCards[idCard].r)me.mediaCards[idCard].r.update(getDataReseau(me.mediaCards[idCard].tracks));
                     //execute les fonctions
                     exeFonction(v.entry);
-                    me.dataTime = me.timeliner.currentTimeStore.value;
                 }
             });
 
         }
 
         this.targetNotify = function(layer){
-            //initialise les cards une fois par seconde
-            if(me.timeliner.currentTimeStore.value != me.dataTime){
-                //cache toutes les card
-                me.mediaCards.forEach(mc=>mc.cardCont.style('display','none'));
-            }
-            if(layer===undefined)return;
-
-            //selectionne les médias
-            getMediaTracks();
-            //ordonne les tracks 
-            me.tracks =  d3.sort(me.tracks,d => d.p.value.entry.ordre);
-            //affiche le svg
-            showSVG();
-            me.tracks.forEach(t=>{              
-            //layer.value.forEach(v=>{
-                let v = t.p.value;
-                //met à jour les infos de la valeur
-                if(v.idObj && v.entry[me.idCard]){
-                    let idCard = v.entry[me.idCard][0]["o:id"];
-                    showMedias(me.mediaCards[idCard]);
-                    //modifie le detail
-                    showDetails(me.mediaCards[idCard]);
-                    //modifie le tagcloud
-                    //mediaCards[idTarget].tc.update(data.map(t=>t.p.text));  
-                    //modifie la liste des tracks            
-                    showListeTracks(me.mediaCards[idCard])
-                    //modifie le réseau                    
-                    if(me.mediaCards[idCard].r)me.mediaCards[idCard].r.update(getDataReseau(me.mediaCards[idCard].tracks));
-                    //execute les fonctions
-                    exeFonction(v.entry);
-                    me.dataTime = me.timeliner.currentTimeStore.value;
-                }
-            });
+            //plus nécessaire car remplacé par setCurrentTime
         }
 
         function exeFonction(e) {
@@ -1125,17 +1116,17 @@ class scenario {
             if(!e.exeFonction) e.exeFonction={};
             e["genstory:hasFonction"].forEach(f=>{
                 //construction de l'instruction
-                let strEval = f+"(";
+                let strEval = f+"(", q;
                 if(e["genstory:hasParam"]){
                     e["genstory:hasParam"].forEach(p=>{
                         switch (p) {
-                            case "allTracks":
+                            case "allCurrentTracks":
                                 //récupère les éléments des targets en cours
                                 strEval+='d3.selectAll(".trackVisible")';                            
                                 break;
                             case "thisTrackRelations":
                                 //construction de la requête à partir des relations de la track
-                                let q="";
+                                q="";
                                 getTrackRelations(e).forEach(r=>q+='.idSource'+r['o:id']+',');// , = OR 
                                 q = q.slice(0,-1);
                                 strEval+='d3.selectAll("'+q+'")';                            
@@ -1152,7 +1143,9 @@ class scenario {
                         }
                         strEval+=',';
                     })    
-                    strEval = strEval.slice(0,-1);
+                    //strEval = strEval.slice(0,-1);
+                    //passe le track de l'événement
+                    strEval+='e';
                 }
                 strEval += ')';
                 try {
@@ -1288,12 +1281,17 @@ class scenario {
                 m.card.append('img').attr('class','card-img-top').attr('src',urlImg)
                     .attr('id','mcimg'+d["oa:hasTarget"][0]["o:id"])
                     .style('cursor','pointer')
-                    .on('click', function(){showMediaOmk(d["oa:hasTarget"][0]);});        
+                    .on('click', function(){showMediaOmk(d["oa:hasTarget"][0]);});
             }else
                 m.card.append('img').attr('class','card-img-top ChaoticumPapillonae');
+
             
             m.body = m.card.append('div')
                 .attr("class", "card-body");
+            
+            //ajoute les vidéos
+            appendVideoToMediaCard(m, d, m.body.append('video'));
+            appendAudioToMediaCard(m, d);
         
             //construction du body à chaque sélection
             m.tracks = [];
@@ -1344,8 +1342,24 @@ class scenario {
         
         }        
 
+        function appendAudioToMediaCard(m, d) {
+
+            if(!d["oa:hasTarget"] || !isTypeAudio(d["oa:hasTarget"][0]["o:media_type"])){
+                return false;
+            }
+            m.audio = new Howl({
+                src: [d["oa:hasTarget"][0]["o:original_url"]]
+              });
+        }    
+
         function appendVideoToMediaCard(m, d, v) {
-            m.idVideo = "visiosVideo" + d["oa:hasTarget"][0]["o:id"];
+
+            if(!d["oa:hasTarget"] || !isTypeVideo(d["oa:hasTarget"][0]["o:media_type"])){
+                v.remove();
+                return false;
+            }
+
+            m.idVideo = "mediaCardVideo" + d["oa:hasTarget"][0]["o:id"],
             v.attr("id", m.idVideo)
                 .attr("class", "video-js vjs-fluid card-img-top")
                 .attr("controls", "true")
@@ -1353,10 +1367,13 @@ class scenario {
                 .attr("width", "400")
                 .attr("height", "300")
                 .attr("poster", urlPosterVideo);
+            m.video = videojs(m.idVideo,{
+                controls:TextTrackCue
+            });
             m.ready = false;
             m.videoIsPaused = true;
             m.video = videojs(m.idVideo,{
-                controls:false
+                controls:true
             })
             m.video.src({
                 type: d["oa:hasTarget"][0]["o:media_type"],
@@ -1401,7 +1418,6 @@ class scenario {
 
         function showMedias(d){
             if (d && d.ready) {
-                let t = me.timeliner.currentTimeStore.value;
                 if(me.timeliner.isPlaying()){
                     if (d.videoIsPaused){
                         d.video.play();
@@ -1413,7 +1429,7 @@ class scenario {
                     d.video.pause();
                     d.videoIsPaused = true;                
                     //synchronise le timeliner et la vidéo avec une tolérance pour éviter les coupures
-                    if (Math.trunc(d.video.currentTime()) != Math.trunc(t)) d.video.currentTime(t);
+                    if (Math.trunc(d.video.currentTime()) != Math.trunc(me.dataTime)) d.video.currentTime(me.dataTime);
                 }
             }
         }
@@ -1668,6 +1684,9 @@ class scenario {
         
         }
         
+        this.findTrack = function(title) {
+            me.details.for
+        }
 
         this.saveTrack = function(modif) {
             if (!document.getElementById('inputIMtitre').value) {
